@@ -1,341 +1,430 @@
-
-
-import streamlit as st
-import pandas as pd
-import joblib
-from pathlib import Path
+from calendar import month_abbr, month_name
+import base64
 from datetime import time
+import json
+from pathlib import Path
 
-# Load trained model path
-model_path = (
-    Path(__file__).resolve().parent.parent
-    / "models"
-    / "flight_delay_rf_model_updated.pkl"
-)
+import altair as alt
+import joblib
+import pandas as pd
+import streamlit as st
 
+from dashboard_data import filter_data, summarize, totals
 
-# Page settings
-st.set_page_config(
-    page_title="Flight Delay Prediction",
-    page_icon="✈️",
-    layout="wide"
-)
+ROOT = Path(__file__).resolve().parents[1]
+HERO_PATH = ROOT / 'assets/aviation-hero.jpg'
+DATA_PATH = ROOT / 'data/analysis/flight_analysis_2024.parquet'
+METADATA_PATH = ROOT / 'data/analysis/flight_analysis_2024.metadata.json'
+WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+SKY = '#4A9CD2'
+TEAL = '#168B91'
 
-
-# Modern Dashboard Styling
-st.markdown("""
-<style>
-    .stApp {
-        background-color: #F5F8FF;
-    }
-
-    .block-container {
-        padding-top: 2rem;
-        max-width: 1250px;
-    }
-
-    h1, h2, h3 {
-        color: #173B68;
-    }
-
-    div.stButton > button[kind="primary"] {
-        background-color: #3478F6;
-        border-radius: 12px;
-        border: none;
-        padding: 0.7rem 1.8rem;
-        font-weight: 600;
-    }
-
-    div.stButton > button[kind="primary"]:hover {
-        background-color: #205BC2;
-    }
-
-    div[data-testid="stMetric"] {
-        background: white;
-        padding: 20px;
-        border-radius: 14px;
-        border: 1px solid #E3EAF5;
-    }
-</style>
-""", unsafe_allow_html=True)
-
-
-# Dashboard Header
-st.title("✈️ Flight Delay Dashboard")
-
-st.write(
-    "Predict flight delays using Machine Learning "
-    "and explore your flight's estimated delay risk."
-)
-
-st.caption(
-    "Model trained on 2024 US flight data. "
-    "Predictions for future dates are estimates and "
-    "may be less reliable due to changing flight patterns."
-)
-
-
-st.divider()
-
-# Flight Information
-st.subheader("Flight Information")
-
-st.info(
-    "Enter your flight details to generate a delay prediction."
-)
+st.set_page_config(page_title='Flight Delay Prediction System', page_icon='✈️', layout='wide')
+st.markdown('''<style>
+.stApp {background: #F5F9FC; color: #50667B; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;}
+/* Reserve space for Streamlit’s fixed 60px toolbar instead of covering it. */
+.block-container {max-width:1250px; padding:calc(3.75rem + .5rem) 2rem 2.5rem;}
+.stApp .block-container :is(h1,h2,h3,h4) {color:#142E48; letter-spacing:-.035em;}
+h2 {font-size:1.65rem !important; font-weight:600 !important;}
+h3 {font-size:1.25rem !important; font-weight:600 !important;}
+h4 {font-size:1rem !important; font-weight:600 !important;}
+p,label,li {font-size:.92rem; line-height:1.65;}
+[data-testid="stCaptionContainer"] {color:#63788A;}
+[data-testid="stVerticalBlock"] {gap:.85rem;}
+[data-testid="stMetric"] {background:white; border:1px solid #E1E9F0;
+ border-radius:12px; padding:.85rem 1rem; box-shadow:0 5px 18px #17395708;}
+[data-testid="stMetricLabel"] p {font-size:.77rem; color:#63788A;}
+[data-testid="stMetricValue"] {color:#142E48; font-size:clamp(1.2rem,2vw,1.65rem) !important; font-weight:600;}
+[data-testid="stForm"] {box-shadow:0 8px 30px #17395708; background:white; border:1px solid #E1E9F0; border-radius:16px; padding:1.3rem;}
+[data-testid="stExpander"] {background:white; border:1px solid #E1E9F0; border-radius:12px;}
+[data-testid="stVegaLiteChart"] {background:white; border:1px solid #E5EDF3; border-radius:12px;}
+[data-testid="stForm"] [data-testid="stWidgetLabel"] p {color:#264963; font-weight:550;}
+[data-baseweb="input"],[data-baseweb="select"] > div {border-radius:9px; background:#F2F8FC; border-color:#D7E5EE;}
+div.stButton > button,div.stFormSubmitButton > button,div.stDownloadButton > button {
+ border-radius:9px; min-height:2.6rem; font-size:.88rem;
+ transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease;}
+div.stButton > button:hover,div.stDownloadButton > button:hover {
+ border-color:#7BA8C6; background:#EFF6FC; color:#173D5F; box-shadow:0 3px 10px #204D7110;}
+div.stButton > button[kind="primary"],div.stFormSubmitButton > button[kind="primary"] {
+ background:linear-gradient(115deg,#1D668D,#187680); border:1px solid #1D668D; color:white;}
+div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind="primary"]:hover {
+ background:#1C496D; border-color:#1C496D; box-shadow:0 4px 12px #245A8320;}
+.st-key-site_navigation {padding:.25rem 0 1rem; border-bottom:1px solid #DEE8F0; margin-bottom:.5rem;}
+.brand {display:flex; align-items:center; gap:.65rem; color:#142E48; font-size:1rem; font-weight:650; line-height:1.2;}
+.brand-icon {background:#E7F1FA; color:#245A83; border-radius:10px; padding:.65rem; font-size:1.15rem;}
+.brand small {display:block; font-size:.68rem; letter-spacing:.1em; font-weight:500; color:#546E82; margin-top:.3rem; text-transform:uppercase;}
+.st-key-site_navigation [role="radiogroup"] {justify-content:flex-end; gap:.2rem; flex-wrap:wrap;}
+.st-key-site_navigation [role="radiogroup"] label {color:#354F65; margin:0; padding:.55rem .75rem; border-radius:8px; transition:background .18s;}
+.st-key-site_navigation [role="radiogroup"] label p {color:inherit;}
+.st-key-site_navigation [role="radiogroup"] label:hover {background:#EAF3FA;}
+.st-key-site_navigation [role="radiogroup"] label:has(input:checked) {background:#E4F3F6; color:#155D70;}
+/* Hide only the decorative radio dot; keep the accessible native input. */
+.st-key-site_navigation [data-testid="stRadioOption"] > div > div:first-child:not([data-testid="stMarkdownContainer"]) {display:none;}
+.st-key-site_navigation [role="radiogroup"] label:focus-within {outline:2px solid #719FBF; outline-offset:2px;}
+.st-key-home_hero {background:#FFFFFF; border:1px solid #DDEAF2; border-radius:22px;
+ padding:1.7rem; margin:.4rem 0; box-shadow:0 12px 36px #153F6310;}
+.st-key-home_hero .eyebrow {color:#187680; text-transform:uppercase; letter-spacing:.13em;
+ font-size:.7rem; font-weight:650; margin-bottom:.8rem; display:flex; align-items:center; gap:.5rem;}
+.st-key-home_hero .eyebrow::before {content:''; width:20px; height:2px; background:#C6A164;}
+.st-key-home_hero h1.hero-title {font-size:clamp(1.9rem,3.3vw,2.8rem); font-weight:650; line-height:1.15;
+ color:#142E48; letter-spacing:-.045em; margin:.3rem 0 1rem;}
+.st-key-home_hero .hero-title .hero-accent {color:#187680;}
+.st-key-home_hero .hero-copy {max-width:29rem; color:#50667B; font-size:.97rem; margin-bottom:.8rem;}
+.st-key-home_hero [data-testid="stCaptionContainer"] p {color:#546E82; font-size:.77rem;}
+.hero-photo {position:relative; margin:0; border-radius:16px; overflow:hidden; background:#DDEAF2;}
+.hero-photo img {width:100%; height:390px; display:block; object-fit:cover; object-position:center 35%;}
+.hero-photo figcaption {position:absolute; bottom:16px; left:16px; right:16px; background:#FFFFFFF2;
+ border:1px solid #FFFFFF80; border-radius:10px; padding:.8rem 1rem; display:flex; justify-content:space-between;
+ gap:.8rem; align-items:center; color:#193B57; font-size:.78rem; box-shadow:0 4px 16px #12334D15;}
+.hero-photo figcaption strong {display:block; color:#193B57; font-size:.88rem;}
+.hero-photo figcaption .photo-badge {background:#E3F4F3; color:#176972; border-radius:20px;
+ padding:.35rem .65rem; font-size:.7rem; white-space:nowrap;}
+.asset-credit {text-align:right; font-size:.68rem; color:#60778A; margin:.45rem .2rem 0;}
+.asset-credit a {color:#496B85; text-decoration:none;}
+.booking-strip {display:flex; justify-content:space-between; align-items:center; gap:1rem;
+ border-bottom:1px dashed #C5DCE7; padding:0 0 1rem; margin:0 0 .6rem; color:#193B57;}
+.booking-strip .booking-title {font-size:1.05rem; font-weight:650;}
+.booking-strip small {display:block; color:#60788A; font-size:.77rem; margin-top:.2rem;}
+.booking-strip .ticket-label {background:#E2F4F3; color:#176972; padding:.35rem .75rem; border-radius:20px; font-size:.73rem;}
+.st-key-prediction_results [data-testid="stMetric"] {border-top:3px solid #459FD0; background:#F5FBFF;}
+.st-key-prediction_results [data-testid="stColumn"]:last-child [data-testid="stMetric"] {border-top-color:#C3A065; background:#FFFCF5;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {border-top:3px solid #459FD0; background:#F3FAFF;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] {border-top:3px solid #24A7A6; background:#F0FAF9;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {border-top:3px solid #244F74; background:#F5F8FD;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {border-top:3px solid #C3A065; background:#FFFCF5;}
+.feature-card {background:white; border:1px solid #E1E9F0; border-top:3px solid #51A8D2; border-radius:14px; padding:1.2rem; min-height:175px;}
+.feature-card .number {font-size:.74rem; letter-spacing:.1em; color:#187680;}
+.feature-card.teal {border-top-color:#28A6A3;}
+.feature-card.gold {border-top-color:#C3A065;}
+.feature-card h3 {font-size:1.06rem !important; margin:.5rem 0; padding:0;}
+.feature-card p {font-size:.86rem; margin:0; color:#63788A;}
+.site-footer {border-top:1px solid #DEE8F0; margin-top:1.6rem; padding-top:.85rem;
+ color:#728596; font-size:.75rem; display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
+@media(max-width:760px) {
+ .block-container {padding:calc(3.75rem + .5rem) .85rem 1.5rem;}
+ [data-testid="stHorizontalBlock"] {flex-direction:column; gap:.7rem;}
+ [data-testid="stColumn"] {width:100% !important; flex:1 1 100% !important; min-width:0;}
+ .st-key-site_navigation [data-testid="stHorizontalBlock"] {gap:1.4rem;}
+ .st-key-site_navigation [role="radiogroup"] {justify-content:flex-start; gap:0;}
+ .st-key-site_navigation [role="radiogroup"] label {padding:.5rem .55rem;}
+ .st-key-site_navigation [role="radiogroup"] p {font-size:.8rem;}
+ .st-key-home_hero {padding:1rem;}
+ .hero-photo img {height:270px;}
+ .hero-photo .photo-badge {display:none;}
+ .hero-photo figcaption {left:10px; right:10px; bottom:10px; padding:.65rem;}
+ .booking-strip {gap:.5rem;}
+ .booking-strip .ticket-label {white-space:nowrap;}
+ .feature-card {min-height:0; padding:1rem;}
+ [data-testid="stForm"] {padding:.9rem;}
+ [data-testid="stMetricValue"] {font-size:1.35rem !important;}
+}
+@media(prefers-reduced-motion:reduce) {button,label {transition:none !important;}}
+</style>''', unsafe_allow_html=True)
 
 
 @st.cache_resource
 def load_model():
-    return joblib.load(model_path)
-
-model = load_model()
-
-# Get actual airline and airport codes from trained model
-encoder = model.named_steps["preprocessing"].named_transformers_[
-    "categorical"
-].named_steps["encoder"]
-
-airline_codes = sorted(encoder.categories_[0].tolist())
-origin_codes = sorted(encoder.categories_[1].tolist())
-destination_codes = sorted(encoder.categories_[2].tolist())
-
-print("Airlines:", len(airline_codes))
-print("Departure Airports:", len(origin_codes))
-print("Destination Airports:", len(destination_codes))
+    return joblib.load(ROOT / 'models/flight_delay_rf_model_updated.pkl')
 
 
-# Flight Information - Modern Layout
-
-# Row 1: Flight Date and Departure Airport
-col1, col2 = st.columns(2, gap="large")
-
-with col1:
-    flight_date = st.date_input("Flight Date")
-
-    month = flight_date.month
-    day_of_month = flight_date.day
-    day_of_week = (flight_date.weekday() + 1) % 7 + 1
-
-with col2:
-    origin = st.selectbox(
-        "Departure Airport",
-        options=origin_codes,
-        index=1
-    )
-
-# Row 2: Airline and Destination Airport
-col3, col4 = st.columns(2, gap="large")
-
-with col3:
-    airline = st.selectbox(
-        "Airline",
-        options=airline_codes,
-        index=airline_codes.index("AA") if "AA" in airline_codes else 0
-    )
-
-with col4:
-    destination = st.selectbox(
-        "Destination Airport",
-        options=destination_codes,
-        index=2
-    )
-
-# Row 3: Departure Time and Flight Distance
-col5, col6 = st.columns(2, gap="large")
-
-with col5:
-    flight_time = st.time_input(
-        "Scheduled Departure Time",
-        value=time(12, 0)
-    )
-
-    departure_time = (
-        flight_time.hour * 100 + flight_time.minute
-    )
-
-with col6:
-    distance = st.number_input(
-        "Flight Distance (miles)",
-        min_value=1.0,
-        value=500.0
-    )
+@st.cache_resource
+def load_analysis():
+    # Shared, read-only resource: never mutate this table in the UI.
+    data = pd.read_parquet(DATA_PATH)
+    metadata = json.loads(METADATA_PATH.read_text())
+    if (int(data.flights.sum()) != metadata['totals']['flights']
+            or int(data.delayed_flights.sum()) != metadata['totals']['delayed_flights']):
+        raise ValueError('Analysis data does not match its metadata')
+    return data, metadata
 
 
-st.caption(
-    "Note: Select a valid flight route. "
-    "Not all airport combinations represent existing direct flights."
-)
+def prediction_dashboard():
+    st.subheader('Flight Prediction')
+    st.write('Enter your flight details to estimate the chance of a departure delay of 15 minutes or more.')
+    st.caption('Trained on 2024 US flights. Future-date predictions are estimates; this is not live flight status.')
+    try:
+        model = load_model()
+    except (OSError, ValueError) as exc:
+        st.error(f'The saved prediction model could not be loaded: {exc}')
+        return
+    encoder = model.named_steps['preprocessing'].named_transformers_['categorical'].named_steps['encoder']
+    airline_codes, origin_codes, destination_codes = [sorted(c.tolist()) for c in encoder.categories_]
+    with st.form('flight_information'):
+        st.html('<div class="booking-strip"><div><span class="booking-title">Your flight, thoughtfully planned</span><small>Departure details · All fields required</small></div><span class="ticket-label">Flight estimate</span></div>')
+        st.caption('01 / DEPARTURE & ARRIVAL')
+        left, right = st.columns(2, gap='medium')
+        with left:
+            origin = st.selectbox('Departure Airport', origin_codes, index=1)
+        with right:
+            destination = st.selectbox('Destination Airport', destination_codes, index=2)
+        st.caption('02 / YOUR FLIGHT DETAILS')
+        left, right = st.columns(2, gap='medium')
+        with left:
+            flight_date = st.date_input('Flight Date')
+        with right:
+            airline = st.selectbox('Airline', airline_codes,
+                                   index=airline_codes.index('AA') if 'AA' in airline_codes else 0)
+        left, right = st.columns(2, gap='medium')
+        with left:
+            flight_time = st.time_input('Scheduled Departure Time', value=time(12, 0))
+        with right:
+            distance = st.number_input('Flight Distance (miles)', min_value=1.0, value=500.0)
+        st.caption('Use local scheduled departure time. Select a valid direct route and its distance; not all airport combinations have direct service.')
+        submitted = st.form_submit_button('Predict Flight Delay', type='primary', icon=':material/flight_takeoff:', width='stretch')
+    if submitted:
+        if origin == destination:
+            st.error('Departure and destination airports cannot be the same.')
+        else:
+            flight_data = pd.DataFrame([{
+                'month': flight_date.month, 'day_of_month': flight_date.day,
+                # Matches the training data: Monday=1, Sunday=7.
+                'day_of_week': flight_date.weekday() + 1,
+                'op_unique_carrier': airline.strip().upper(), 'origin': origin.strip().upper(),
+                'dest': destination.strip().upper(),
+                'crs_dep_time': flight_time.hour * 100 + flight_time.minute, 'distance': distance,
+            }])
+            probability = float(model.predict_proba(flight_data)[0][1])
+            prediction = int(probability >= 0.50)
+            risk = 'High' if probability >= 0.70 else 'Moderate' if probability >= 0.40 else 'Low'
+            st.subheader('Prediction overview')
+            st.caption(f'{origin} → {destination} · {airline} · {flight_date:%d %b %Y} · {flight_time:%H:%M}')
+            with st.container(key='prediction_results'):
+                a, b, c = st.columns(3)
+                a.metric('Predicted status', 'Delayed' if prediction == 1 else 'On Time')
+                b.metric('Estimated delay probability', f'{probability:.1%}')
+                c.metric('Risk level', risk)
+            st.progress(probability, text='Estimated probability of a departure delay ≥15 minutes')
+            st.caption('Classification uses a 50% threshold. Risk: Low <40%, Moderate 40–<70%, High ≥70%. “On Time” includes departures less than 15 minutes late. This estimate is not a guaranteed flight status.')
+    st.caption('Visit About for the model methodology, evaluation metrics, and limitations.')
 
 
-# Prediction Button
-if st.button("✈️ Predict Flight Delay", type="primary"):
+def about_section():
+    st.subheader('About the system')
+    st.write('A university Data Science project connecting machine learning with a clear view of historical aviation patterns.')
+    st.markdown('#### The prediction model')
+    st.write('The saved pipeline fills missing values, one-hot encodes airline and airport codes, and uses a Random Forest to estimate departure delay risk from eight calendar, route, schedule, and distance features.')
+    st.write('Random Forest · 150 trees · Evaluated on 106,105 flights from October–December 2024.')
+    for col, label, value in zip(st.columns(4), ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
+                                  ['72.56%', '27.04%', '37.89%', '31.56%']):
+        col.metric(label, value)
+    st.caption('These are the existing final test metrics. The model was not retrained. Weekday inputs now match training: Monday=1 through Sunday=7.')
+    st.markdown('#### What the results mean')
+    st.write('A delayed departure is at least 15 minutes late. The prediction threshold is 50%; risk levels are Low below 40%, Moderate from 40% to below 70%, and High from 70%.')
+    st.markdown('#### Historical analysis, transparent calculations')
+    st.write('Analytics uses the full cleaned 2024 US dataset. Cancelled flights and records without a known departure delay are excluded; diverted flights remain included. Filtered rates divide summed delayed-flight counts by summed flight counts.')
+    st.info('This system does not provide live flight tracking or official flight status. Future-date estimates may be less reliable, and historical associations do not establish causes.')
 
-    # Validate airports
-    if origin == destination:
-        st.error("Departure and destination airports cannot be the same.")
-        st.stop()
 
-    # Prepare flight data
-    flight_data = pd.DataFrame([{
-        "month": month,
-        "day_of_month": day_of_month,
-        "day_of_week": day_of_week,
-        "op_unique_carrier": airline.strip().upper(),
-        "origin": origin.strip().upper(),
-        "dest": destination.strip().upper(),
-        "crs_dep_time": departure_time,
-        "distance": distance
-    }])
+def style_chart(chart, height):
+    """Presentation only: retain the chart's data, encodings, and calculations."""
+    # Streamlit 1.67 assigns padding.bottom in its frontend preprocessor.
+    # Vega-Lite accepts a number here, but Streamlit requires an object.
+    return (chart.properties(height=height, background='#FFFFFF',
+                             padding={'left': 12, 'right': 12, 'top': 12, 'bottom': 20})
+            .configure_view(stroke=None)
+            .configure_axis(labelColor='#59676D', titleColor='#59676D', labelFontSize=11,
+                            titleFontSize=11, titleFontWeight='normal', gridColor='#EEF0EB',
+                            domainColor='#DFE4DE', tickColor='#DFE4DE', labelPadding=7,
+                            titlePadding=10)
+            .configure_axisX(grid=False, labelOverlap=True)
+            .configure_legend(labelColor='#59676D', titleColor='#46545B', labelFontSize=11,
+                              titleFontSize=11, titleFontWeight='normal'))
 
-    # Make prediction
-    probability = float(model.predict_proba(flight_data)[0][1])
-    prediction = int(probability >= 0.50)
 
-    # Determine flight status
-    if prediction == 1:
-        flight_status = "Delayed"
-        status_color = "#D9534F"
+def rate_chart(table, x, title, order=None, line=False):
+    st.markdown(f'#### {title}')
+    if table.empty:
+        st.info('No groups meet the minimum-flight threshold. Lower the threshold or broaden your filters.')
+        return
+    axis = alt.X(f'{x}:O', sort=order, title=None) if order is not None else alt.X(f'{x}:N', sort='-y', title=None)
+    base = alt.Chart(table).encode(
+        x=axis, y=alt.Y('delay_rate_pct:Q', title='Delayed departures (%)', scale=alt.Scale(zero=True)),
+        tooltip=[alt.Tooltip(f'{x}:N', title=title), alt.Tooltip('flights:Q', format=',', title='Flights'),
+                 alt.Tooltip('delayed_flights:Q', format=',', title='Delayed flights'),
+                 alt.Tooltip('delay_rate_pct:Q', format='.2f', title='Delay rate (%)')])
+    color = {'Month': TEAL, 'departure_hour': '#358DC2', 'op_unique_carrier': '#448FC1',
+             'origin': '#29A39E', 'dest': '#B18C48', 'Weekday': '#348B98'}.get(x, SKY)
+    chart = (base.mark_line(color=color, strokeWidth=2, point=alt.OverlayMarkDef(size=28, filled=True))
+             if line else base.mark_bar(color=color, cornerRadiusTopLeft=3, cornerRadiusTopRight=3))
+    st.altair_chart(style_chart(chart, height=235), width='stretch')
+
+
+def remember_filters():
+    st.session_state['saved_analysis_filters'] = {
+        key: value for key, value in st.session_state.items() if key.startswith('analysis_')}
+
+
+def reset_filters():
+    st.session_state.pop('saved_analysis_filters', None)
+    for key in list(st.session_state):
+        if key.startswith('analysis_'):
+            del st.session_state[key]
+
+
+def filter_select(label, options, key, formatter=str):
+    values = st.multiselect(label, ['All'] + list(options),
+                            default=st.session_state.get('saved_analysis_filters', {}).get(key, ['All']), key=key,
+                            format_func=lambda value: 'All' if value == 'All' else formatter(value), on_change=remember_filters,
+                            help='Remove All to select specific values. Clearing every value shows no matches.')
+    return list(options) if 'All' in values else values
+
+
+def analysis_dashboard():
+    st.subheader('Flight Analytics')
+    st.write('Explore observed departure delays across the full cleaned dataset. All charts and insights follow your filters.')
+    try:
+        data, metadata = load_analysis()
+    except (OSError, ValueError, KeyError) as exc:
+        st.error(f'Analysis data could not be loaded: {exc}. Include both files from data/analysis in the application.')
+        return
+    st.caption(f"Source coverage: {metadata['date_min']} to {metadata['date_max']} · "
+               f"{metadata['totals']['flights']:,} eligible flights · Cancelled flights excluded; diverted flights retained.")
+    with st.expander('Refine your analysis · filters', expanded=True):
+        left, middle, right = st.columns(3, gap='medium')
+        with left:
+            months = filter_select('Months', range(1, 13), 'analysis_months', lambda m: month_name[m])
+            airlines = filter_select('Airlines', sorted(data.op_unique_carrier.unique()), 'analysis_airlines')
+        with middle:
+            origins = filter_select('Departure airports', sorted(data.origin.unique()), 'analysis_origins')
+            destinations = filter_select('Destination airports', sorted(data.dest.unique()), 'analysis_destinations')
+        with right:
+            days = filter_select('Weekdays', range(1, 8), 'analysis_days', lambda d: WEEKDAYS[d - 1])
+            hours = st.slider('Scheduled departure hours (local)', 0, 23, st.session_state.get('saved_analysis_filters', {}).get('analysis_hours', (0, 23)), key='analysis_hours',
+                              on_change=remember_filters)
+        threshold, reset = st.columns([3, 1], vertical_alignment='bottom')
+        with threshold:
+            minimum = st.number_input('Minimum flights per ranked group', min_value=1,
+                                       value=st.session_state.get('saved_analysis_filters', {}).get('analysis_minimum', 100), step=10, key='analysis_minimum', on_change=remember_filters)
+        with reset:
+            st.button('Reset filters', on_click=reset_filters, width='stretch')
+        st.caption('Clear a selection to show no matches. Minimum flights affects rankings, heatmap cells, and insights; trend charts retain all available groups.')
+    selected = filter_data(data, {'month': months, 'op_unique_carrier': airlines,
+                                'origin': origins, 'dest': destinations, 'day_of_week': days}, hours)
+    values = totals(selected)
+    if not values['flights']:
+        st.warning('No flights match these filters. Select at least one value in every filter, broaden your route or time selection, or reset filters.')
+        return
+    with st.container(key='analysis_kpis'):
+        a, b, c, d = st.columns(4)
+        a.metric('Flights analyzed', f"{values['flights']:,}")
+        b.metric('Delayed departures', f"{values['delayed_flights']:,}")
+        c.metric('Departure delay rate', f"{values['delay_rate']:.2%}")
+        d.metric('Average departure delay', f"{values['average_departure_delay']:.2f} min")
+    delayed_average = values['average_delayed_departure']
+    st.caption('Average departure delay includes negative values for early departures. ' +
+               (f'Among delayed flights only: {delayed_average:.2f} minutes.' if delayed_average is not None else 'No delayed flights in this selection.'))
+    monthly = summarize(selected, ['month'])
+    monthly['Month'] = monthly.month.map(lambda m: month_abbr[m])
+    hourly = summarize(selected, ['departure_hour'])
+    daily = summarize(selected, ['day_of_week'])
+    daily['Weekday'] = daily.day_of_week.map(lambda d: WEEKDAYS[d - 1])
+    carrier = summarize(selected, ['op_unique_carrier'])
+    origin = summarize(selected, ['origin'])
+    destination = summarize(selected, ['dest'])
+    left, right = st.columns(2, gap='medium')
+    with left:
+        rate_chart(monthly, 'Month', 'Monthly delay rate', list(month_abbr)[1:], line=True)
+        rate_chart(hourly, 'departure_hour', 'Scheduled departure hour', list(range(24)), line=True)
+        rate_chart(origin[origin.flights >= minimum].nlargest(15, 'delay_rate_pct'), 'origin', 'Departure airport ranking · top 15')
+    with right:
+        rate_chart(carrier[carrier.flights >= minimum], 'op_unique_carrier', 'Airline delay rate')
+        rate_chart(daily, 'Weekday', 'Weekday delay rate', WEEKDAYS)
+        rate_chart(destination[destination.flights >= minimum].nlargest(15, 'delay_rate_pct'), 'dest', 'Destination airport ranking · top 15')
+    st.markdown('#### Weekday × departure hour')
+    heat = summarize(selected, ['day_of_week', 'departure_hour'])
+    heat = heat[heat.flights >= minimum].copy()
+    heat['Weekday'] = heat.day_of_week.map(lambda d: WEEKDAYS[d - 1])
+    if heat.empty:
+        st.info('No heatmap cells meet the minimum-flight threshold.')
     else:
-        flight_status = "On Time"
-        status_color = "#198754"
-
-    # Determine risk level
-    if probability >= 0.70:
-        risk_level = "High"
-        risk_color = "#D9534F"
-    elif probability >= 0.40:
-        risk_level = "Moderate"
-        risk_color = "#E6A23C"
+        chart = alt.Chart(heat).mark_rect(stroke='#FFFFFF', strokeWidth=.7, cornerRadius=2).encode(
+            x=alt.X('departure_hour:O', title='Scheduled departure hour (local)', sort=list(range(24)),
+                    axis=alt.Axis(labelAngle=0, labelExpr="datum.value % 3 == 0 ? datum.label : ''")),
+            y=alt.Y('Weekday:N', sort=WEEKDAYS, title=None),
+            color=alt.Color('delay_rate_pct:Q', title='Delay rate (%)',
+                            scale=alt.Scale(range=['#EFF8FB', '#C9EBF3', '#79CDD0', '#268F9D', '#193E60'], domainMin=0),
+                            legend=alt.Legend(orient='bottom', direction='horizontal', gradientLength=180,
+                                              gradientThickness=10, format='.0f', titlePadding=8)),
+            tooltip=['Weekday:N', alt.Tooltip('departure_hour:O', title='Hour'),
+                     alt.Tooltip('flights:Q', format=','), alt.Tooltip('delayed_flights:Q', format=','),
+                     alt.Tooltip('delay_rate_pct:Q', format='.2f')])
+        st.altair_chart(style_chart(chart, height=245), width='stretch')
+    st.caption(f'Rankings and heatmap require at least {minimum:,} flights per displayed group. Missing cells are unavailable or below the threshold; they do not mean zero delay.')
+    st.markdown('#### Insights from your selection')
+    eligible_months = monthly[monthly.flights >= minimum]
+    eligible_carriers = carrier[carrier.flights >= minimum]
+    if len(eligible_months) >= 2:
+        high = eligible_months.loc[eligible_months.delay_rate_pct.idxmax()]
+        low = eligible_months.loc[eligible_months.delay_rate_pct.idxmin()]
+        st.write(f"• Highest observed monthly rate: **{high['Month']} ({high.delay_rate_pct:.2f}%)**; lowest: **{low['Month']} ({low.delay_rate_pct:.2f}%)**. "
+                 f'The difference is {high.delay_rate_pct - low.delay_rate_pct:.2f} percentage points.')
     else:
-        risk_level = "Low"
-        risk_color = "#198754"
-
-    st.divider()
-    st.subheader("Prediction Overview")
-
-    # Three result cards
-    col1, col2, col3 = st.columns(3, gap="medium")
-
-    with col1:
-        st.markdown(
-            f"""
-            <div style="background:white;padding:24px;
-                        border-radius:16px;border:1px solid #E3EAF5;
-                        min-height:125px;">
-                <p style="color:#64748B;margin:0;">Flight Status</p>
-                <h2 style="color:{status_color};margin-top:12px;">
-                    {flight_status}
-                </h2>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col2:
-        st.markdown(
-            f"""
-            <div style="background:white;padding:24px;
-                        border-radius:16px;border:1px solid #E3EAF5;
-                        min-height:125px;">
-                <p style="color:#64748B;margin:0;">Delay Probability</p>
-                <h2 style="color:#173B68;margin-top:12px;">
-                    {probability * 100:.1f}%
-                </h2>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    with col3:
-        st.markdown(
-            f"""
-            <div style="background:white;padding:24px;
-                        border-radius:16px;border:1px solid #E3EAF5;
-                        min-height:125px;">
-                <p style="color:#64748B;margin:0;">Risk Level</p>
-                <h2 style="color:{risk_color};margin-top:12px;">
-                    {risk_level}
-                </h2>
-            </div>
-            """,
-            unsafe_allow_html=True
-        )
-
-    st.write("")
-    st.write("**Estimated Delay Probability**")
-    st.progress(probability)
-
-    st.caption(
-        "A delay means departure is 15 minutes or more later "
-        "than scheduled. This is a model estimate, "
-        "not a guaranteed flight status."
-    )
-
-# Model Performance Section
-st.divider()
-st.subheader("📊 Model Performance")
-
-st.caption(
-    "Random Forest evaluated on 106,105 flights "
-    "from October to December 2024."
-)
-
-m1, m2, m3, m4 = st.columns(4)
-
-m1.metric("Accuracy", "72.56%")
-m2.metric("Precision", "27.04%")
-m3.metric("Recall", "37.89%")
-m4.metric("F1-Score", "31.56%")
+        st.write('Select at least two months with enough flights for a monthly comparison.')
+    if len(eligible_carriers) >= 2:
+        row = eligible_carriers.loc[eligible_carriers.delay_rate_pct.idxmax()]
+        st.write(f'• Highest observed airline rate: **{row.op_unique_carrier} ({row.delay_rate_pct:.2f}%)**, across **{int(row.flights):,} flights**.')
+    st.caption('Rates describe historical associations, not causes or guaranteed future performance. Airlines serve different routes and schedules; ties may occur in rankings.')
+    with st.expander('Explore and download summaries'):
+        grouping = st.selectbox('Summarize by', ['month', 'op_unique_carrier', 'origin', 'dest', 'day_of_week', 'departure_hour'])
+        detail = summarize(selected, [grouping])
+        st.dataframe(detail, hide_index=True, width='stretch')
+        st.download_button('Download filtered summary (CSV)', detail.to_csv(index=False).encode(),
+                           file_name=f'flight_delay_2024_{grouping}.csv', mime='text/csv')
+    with st.expander('Data source and calculation notes'):
+        st.write('Full cleaned 2024 data, not a sample. A delayed departure is at least 15 minutes late. Rates divide summed delayed counts by summed flight counts, never average percentages.')
+        st.write('Weekdays: Monday=1 through Sunday=7. Scheduled 2400 is grouped into hour 00 on its recorded date. Cancelled flights and records with missing departure delay are excluded.')
+        st.caption('The compact data supports month-level filtering, not individual flight records, exact dates, medians, or delay distributions. Analysis airport coverage is independent of the model’s training categories.')
+        st.download_button('Download data metadata (JSON)', json.dumps(metadata, indent=2),
+                           file_name=METADATA_PATH.name, mime='application/json')
 
 
-# Monthly Flight Delay Analysis
-st.divider()
-st.subheader("📈 Monthly Flight Delay Analysis")
 
-# Dataset Summary Cards
-s1, s2, s3 = st.columns(3)
-
-s1.metric("Total Flights Analyzed", "6,982,766")
-
-s2.metric(
-    "Highest Delay Month",
-    "July",
-    help="Delay rate: 29.18%"
-)
-
-s3.metric(
-    "Lowest Delay Month",
-    "October",
-    help="Delay rate: 13.73%"
-)
-
-st.caption(
-    "Highest monthly delay rate: July (29.18%) | "
-    "Lowest monthly delay rate: October (13.73%)"
-)
+def navigate(section):
+    st.session_state['site_section'] = section
 
 
-monthly_data = pd.DataFrame({
-    "Month": [
-        "Jan", "Feb", "Mar", "Apr",
-        "May", "Jun", "Jul", "Aug",
-        "Sep", "Oct", "Nov", "Dec"
-    ],
-    "Delay Rate (%)": [
-        22.93, 15.41, 20.49, 19.04,
-        25.65, 25.31, 29.18, 23.27,
-        15.34, 13.73, 14.57, 21.85
-    ]
-})
+@st.cache_data
+def hero_image_uri():
+    # Self-contained image: no external request or expiring CDN link at runtime.
+    return 'data:image/jpeg;base64,' + base64.b64encode(HERO_PATH.read_bytes()).decode('ascii')
 
 
-# Display months in chronological order
-st.bar_chart(
-    monthly_data,
-    x="Month",
-    y="Delay Rate (%)",
-    color="#3478F6",
-    sort=False
-)
+def home_section():
+    with st.container(key='home_hero'):
+        intro, visual = st.columns([1, 1.14], gap='large', vertical_alignment='center')
+        with intro:
+            st.html('<div class="eyebrow">A smarter way to take flight</div><h1 class="hero-title">Predict Your Flight.<br><span class="hero-accent">Plan with Confidence.</span></h1><p class="hero-copy">A clearer outlook for your next journey. Estimate departure delay risk and discover the patterns behind US air travel.</p>')
+            predict, explore = st.columns(2)
+            predict.button('Predict Flight', type='primary', on_click=navigate,
+                           args=('Flight Prediction',), width='stretch', icon=':material/flight_takeoff:')
+            explore.button('Explore Analytics', on_click=navigate,
+                           args=('Flight Analytics',), width='stretch', icon=':material/monitoring:')
+            st.caption('2024 US flight data · Model estimates, not live flight status')
+        with visual:
+            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>A fresh perspective on flight</strong>Historical insights. Thoughtful planning.</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
+    st.markdown('### From flight details to a clearer outlook')
+    for col, icon, accent, title, copy in zip(st.columns(3, gap='medium'), ['↗', '▥', '◎'], ['', 'teal', 'gold'],
+            ['Plan your departure', 'Discover flight patterns', 'Know what drives the estimate'],
+            ['Your airline, route, and schedule come together in a clear delay-risk estimate.',
+             'Explore airports, airlines, and departure times with interactive full-data analytics.',
+             'Transparent model performance and clear limitations, so you can interpret every result.']):
+        with col:
+            st.html(f'<article class="feature-card {accent}"><div class="number" aria-hidden="true">{icon}</div><h3>{title}</h3><p>{copy}</p></article>')
 
+
+with st.container(key='site_navigation'):
+    brand, navigation = st.columns([1, 2], vertical_alignment='center')
+    with brand:
+        st.markdown('<div class="brand"><span class="brand-icon" aria-hidden="true">✈</span><span>Flight Delay<small>Prediction & intelligence</small></span></div>', unsafe_allow_html=True)
+    with navigation:
+        section = st.radio('Website navigation', ['Home', 'Flight Prediction', 'Flight Analytics', 'About'],
+                           horizontal=True, key='site_section', label_visibility='collapsed')
+if section == 'Home':
+    home_section()
+elif section == 'Flight Prediction':
+    prediction_dashboard()
+elif section == 'Flight Analytics':
+    analysis_dashboard()
+else:
+    about_section()
+st.markdown('<footer class="site-footer"><span>Flight Delay Prediction System · University Data Science project</span><span>Historical insights. Informed perspectives.</span></footer>', unsafe_allow_html=True)

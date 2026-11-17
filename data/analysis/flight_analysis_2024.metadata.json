@@ -1,0 +1,132 @@
+{
+  "schema_version": 1,
+  "source": {
+    "file": "flight_data_cleaned.csv",
+    "description": "Full cleaned US flight dataset, 2024",
+    "bytes": 1309555273,
+    "sha256": "392a1d08c319a1246bf438914231a31f9ceea186f370b0a39b442f851d5f719a"
+  },
+  "cleaning_rule": "cancelled == 0 and dep_delay is not missing; diverted flights retained",
+  "target_rule": "delayed = int(dep_delay >= 15)",
+  "weekday_mapping": {
+    "1": "Monday",
+    "2": "Tuesday",
+    "3": "Wednesday",
+    "4": "Thursday",
+    "5": "Friday",
+    "6": "Saturday",
+    "7": "Sunday"
+  },
+  "scheduled_time_rule": "HHMM; 2400 grouped into hour 0 on the recorded flight date",
+  "negative_delay_rule": "Early departures remain negative in the overall delay sum",
+  "date_min": "2024-01-01",
+  "date_max": "2024-12-31",
+  "totals": {
+    "flights": 6982766,
+    "delayed_flights": 1441139,
+    "not_delayed_flights": 5541627,
+    "delay_rate": 0.2063851201658483,
+    "departure_delay_minutes_sum": 88297931.0,
+    "delayed_departure_minutes_sum": 104216419.0,
+    "scheduled_2400_records": 1
+  },
+  "unique_counts": {
+    "op_unique_carrier": 15,
+    "origin": 348,
+    "dest": 348
+  },
+  "monthly_totals": {
+    "1": {
+      "flights": 526882,
+      "delayed_flights": 121939
+    },
+    "2": {
+      "flights": 516219,
+      "delayed_flights": 79987
+    },
+    "3": {
+      "flights": 586647,
+      "delayed_flights": 122198
+    },
+    "4": {
+      "flights": 578170,
+      "delayed_flights": 109226
+    },
+    "5": {
+      "flights": 601499,
+      "delayed_flights": 154248
+    },
+    "6": {
+      "flights": 603256,
+      "delayed_flights": 152654
+    },
+    "7": {
+      "flights": 616241,
+      "delayed_flights": 181716
+    },
+    "8": {
+      "flights": 606311,
+      "delayed_flights": 139628
+    },
+    "9": {
+      "flights": 579123,
+      "delayed_flights": 87286
+    },
+    "10": {
+      "flights": 609213,
+      "delayed_flights": 82864
+    },
+    "11": {
+      "flights": 572775,
+      "delayed_flights": 82519
+    },
+    "12": {
+      "flights": 586430,
+      "delayed_flights": 126874
+    }
+  },
+  "dimensions": [
+    "month",
+    "op_unique_carrier",
+    "origin",
+    "dest",
+    "day_of_week",
+    "departure_hour"
+  ],
+  "measures": [
+    "flights",
+    "delayed_flights",
+    "departure_delay_minutes_sum",
+    "delayed_departure_minutes_sum"
+  ],
+  "measure_definitions": {
+    "flights": "Count of eligible flights",
+    "delayed_flights": "Count with dep_delay >= 15 minutes",
+    "departure_delay_minutes_sum": "Sum of dep_delay, including negative early departures",
+    "delayed_departure_minutes_sum": "Sum of dep_delay among delayed flights only"
+  },
+  "aggregation_rule": "Sum counts and minutes after filtering; divide summed measures, never average rates",
+  "limitations": [
+    "No individual flight records, exact-date filters, medians, or delay distributions",
+    "Observed associations do not establish causes; no live flight data"
+  ],
+  "artifact": {
+    "file": "flight_analysis_2024.parquet",
+    "rows": 2172103,
+    "bytes": 9552946,
+    "sha256": "605cd65cbda19d580486b9bb55b4365fe7d87304c44effa7c50d477ae1835176",
+    "compression": "snappy"
+  },
+  "original_source_verification": {
+    "file": "flight_data_2024.csv.zip",
+    "sha256": "b56ab2ff18da92c274a362a762288a7f371a12c1549b1253ed200bb5a6fdbe55",
+    "rows": 7079081,
+    "cancelled_flights": 96315,
+    "missing_departure_delay": 92970,
+    "excluded_flights": 96315,
+    "eligible_flights": 6982766,
+    "eligible_delayed_flights": 1441139,
+    "monthly_counts_and_departure_delay_sums_match": true,
+    "note": "Cancelled and missing-delay counts overlap; reconciliation checks aggregates, not row identity"
+  }
+}
