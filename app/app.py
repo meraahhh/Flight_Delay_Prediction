@@ -283,9 +283,9 @@ def analysis_dashboard():
     except (OSError, ValueError, KeyError) as exc:
         st.error(f'Analysis data could not be loaded: {exc}. Include both files from data/analysis in the application.')
         return
-    st.caption(f"Source coverage: {metadata['date_min']} to {metadata['date_max']} · "
-               f"{metadata['totals']['flights']:,} eligible flights · Cancelled flights excluded; diverted flights retained.")
-    with st.expander('Refine your analysis · filters', expanded=True):
+    # Render the filtered KPI cards above all collapsed controls and analyses.
+    kpi_container = st.container(key='analysis_kpis')
+    with st.expander('Filters', expanded=False):
         left, middle, right = st.columns(3, gap='medium')
         with left:
             months = filter_select('Months', range(1, 13), 'analysis_months', lambda m: month_name[m])
@@ -310,15 +310,13 @@ def analysis_dashboard():
     if not values['flights']:
         st.warning('No flights match these filters. Select at least one value in every filter, broaden your route or time selection, or reset filters.')
         return
-    with st.container(key='analysis_kpis'):
+    with kpi_container:
         a, b, c, d = st.columns(4)
         a.metric('Flights analyzed', f"{values['flights']:,}")
         b.metric('Delayed departures', f"{values['delayed_flights']:,}")
         c.metric('Departure delay rate', f"{values['delay_rate']:.2%}")
         d.metric('Average departure delay', f"{values['average_departure_delay']:.2f} min")
     delayed_average = values['average_delayed_departure']
-    st.caption('Average departure delay includes negative values for early departures. ' +
-               (f'Among delayed flights only: {delayed_average:.2f} minutes.' if delayed_average is not None else 'No delayed flights in this selection.'))
     monthly = summarize(selected, ['month'])
     monthly['Month'] = monthly.month.map(lambda m: month_abbr[m])
     hourly = summarize(selected, ['departure_hour'])
@@ -327,56 +325,63 @@ def analysis_dashboard():
     carrier = summarize(selected, ['op_unique_carrier'])
     origin = summarize(selected, ['origin'])
     destination = summarize(selected, ['dest'])
-    left, right = st.columns(2, gap='medium')
-    with left:
+    with st.expander('Monthly delays', expanded=False):
         rate_chart(monthly, 'Month', 'Monthly delay rate', list(month_abbr)[1:], line=True)
+    with st.expander('Departure hours', expanded=False):
         rate_chart(hourly, 'departure_hour', 'Scheduled departure hour', list(range(24)), line=True)
+    with st.expander('Departure airports', expanded=False):
         rate_chart(origin[origin.flights >= minimum].nlargest(15, 'delay_rate_pct'), 'origin', 'Departure airport ranking · top 15')
-    with right:
+    with st.expander('Airline delays', expanded=False):
         rate_chart(carrier[carrier.flights >= minimum], 'op_unique_carrier', 'Airline delay rate')
+    with st.expander('Weekday delays', expanded=False):
         rate_chart(daily, 'Weekday', 'Weekday delay rate', WEEKDAYS)
+    with st.expander('Destination airports', expanded=False):
         rate_chart(destination[destination.flights >= minimum].nlargest(15, 'delay_rate_pct'), 'dest', 'Destination airport ranking · top 15')
-    st.markdown('#### Weekday × departure hour')
-    heat = summarize(selected, ['day_of_week', 'departure_hour'])
-    heat = heat[heat.flights >= minimum].copy()
-    heat['Weekday'] = heat.day_of_week.map(lambda d: WEEKDAYS[d - 1])
-    if heat.empty:
-        st.info('No heatmap cells meet the minimum-flight threshold.')
-    else:
-        chart = alt.Chart(heat).mark_rect(stroke='#FFFFFF', strokeWidth=.7, cornerRadius=2).encode(
-            x=alt.X('departure_hour:O', title='Scheduled departure hour (local)', sort=list(range(24)),
-                    axis=alt.Axis(labelAngle=0, labelExpr="datum.value % 3 == 0 ? datum.label : ''")),
-            y=alt.Y('Weekday:N', sort=WEEKDAYS, title=None),
-            color=alt.Color('delay_rate_pct:Q', title='Delay rate (%)',
-                            scale=alt.Scale(range=['#F5F0E9', '#D8C5B1', '#B38087', '#922F48', '#14253D'], domainMin=0),
-                            legend=alt.Legend(orient='bottom', direction='horizontal', gradientLength=180,
-                                              gradientThickness=10, format='.0f', titlePadding=8)),
-            tooltip=['Weekday:N', alt.Tooltip('departure_hour:O', title='Hour'),
-                     alt.Tooltip('flights:Q', format=','), alt.Tooltip('delayed_flights:Q', format=','),
-                     alt.Tooltip('delay_rate_pct:Q', format='.2f')])
-        st.altair_chart(style_chart(chart, height=245), width='stretch')
-    st.caption(f'Rankings and heatmap require at least {minimum:,} flights per displayed group. Missing cells are unavailable or below the threshold; they do not mean zero delay.')
-    st.markdown('#### Insights from your selection')
-    eligible_months = monthly[monthly.flights >= minimum]
-    eligible_carriers = carrier[carrier.flights >= minimum]
-    if len(eligible_months) >= 2:
-        high = eligible_months.loc[eligible_months.delay_rate_pct.idxmax()]
-        low = eligible_months.loc[eligible_months.delay_rate_pct.idxmin()]
-        st.write(f"• Highest observed monthly rate: **{high['Month']} ({high.delay_rate_pct:.2f}%)**; lowest: **{low['Month']} ({low.delay_rate_pct:.2f}%)**. "
-                 f'The difference is {high.delay_rate_pct - low.delay_rate_pct:.2f} percentage points.')
-    else:
-        st.write('Select at least two months with enough flights for a monthly comparison.')
-    if len(eligible_carriers) >= 2:
-        row = eligible_carriers.loc[eligible_carriers.delay_rate_pct.idxmax()]
-        st.write(f'• Highest observed airline rate: **{row.op_unique_carrier} ({row.delay_rate_pct:.2f}%)**, across **{int(row.flights):,} flights**.')
-    st.caption('Rates describe historical associations, not causes or guaranteed future performance. Airlines serve different routes and schedules; ties may occur in rankings.')
-    with st.expander('Explore and download summaries'):
+    with st.expander('Weekday–hour heatmap', expanded=False):
+        heat = summarize(selected, ['day_of_week', 'departure_hour'])
+        heat = heat[heat.flights >= minimum].copy()
+        heat['Weekday'] = heat.day_of_week.map(lambda d: WEEKDAYS[d - 1])
+        if heat.empty:
+            st.info('No heatmap cells meet the minimum-flight threshold.')
+        else:
+            chart = alt.Chart(heat).mark_rect(stroke='#FFFFFF', strokeWidth=.7, cornerRadius=2).encode(
+                x=alt.X('departure_hour:O', title='Scheduled departure hour (local)', sort=list(range(24)),
+                        axis=alt.Axis(labelAngle=0, labelExpr="datum.value % 3 == 0 ? datum.label : ''")),
+                y=alt.Y('Weekday:N', sort=WEEKDAYS, title=None),
+                color=alt.Color('delay_rate_pct:Q', title='Delay rate (%)',
+                                scale=alt.Scale(range=['#F5F0E9', '#D8C5B1', '#B38087', '#922F48', '#14253D'], domainMin=0),
+                                legend=alt.Legend(orient='bottom', direction='horizontal', gradientLength=180,
+                                                  gradientThickness=10, format='.0f', titlePadding=8)),
+                tooltip=['Weekday:N', alt.Tooltip('departure_hour:O', title='Hour'),
+                         alt.Tooltip('flights:Q', format=','), alt.Tooltip('delayed_flights:Q', format=','),
+                         alt.Tooltip('delay_rate_pct:Q', format='.2f')])
+            st.altair_chart(style_chart(chart, height=245), width='stretch')
+        st.caption(f'Rankings and heatmap require at least {minimum:,} flights per displayed group. Missing cells are unavailable or below the threshold; they do not mean zero delay.')
+    with st.expander('Insights', expanded=False):
+        st.caption('Average departure delay includes negative values for early departures. ' +
+                   (f'Among delayed flights only: {delayed_average:.2f} minutes.' if delayed_average is not None else 'No delayed flights in this selection.'))
+        eligible_months = monthly[monthly.flights >= minimum]
+        eligible_carriers = carrier[carrier.flights >= minimum]
+        if len(eligible_months) >= 2:
+            high = eligible_months.loc[eligible_months.delay_rate_pct.idxmax()]
+            low = eligible_months.loc[eligible_months.delay_rate_pct.idxmin()]
+            st.write(f"• Highest observed monthly rate: **{high['Month']} ({high.delay_rate_pct:.2f}%)**; lowest: **{low['Month']} ({low.delay_rate_pct:.2f}%)**. "
+                     f'The difference is {high.delay_rate_pct - low.delay_rate_pct:.2f} percentage points.')
+        else:
+            st.write('Select at least two months with enough flights for a monthly comparison.')
+        if len(eligible_carriers) >= 2:
+            row = eligible_carriers.loc[eligible_carriers.delay_rate_pct.idxmax()]
+            st.write(f'• Highest observed airline rate: **{row.op_unique_carrier} ({row.delay_rate_pct:.2f}%)**, across **{int(row.flights):,} flights**.')
+        st.caption('Rates describe historical associations, not causes or guaranteed future performance. Airlines serve different routes and schedules; ties may occur in rankings.')
+    with st.expander('Summary table', expanded=False):
         grouping = st.selectbox('Summarize by', ['month', 'op_unique_carrier', 'origin', 'dest', 'day_of_week', 'departure_hour'])
         detail = summarize(selected, [grouping])
         st.dataframe(detail, hide_index=True, width='stretch')
         st.download_button('Download filtered summary (CSV)', detail.to_csv(index=False).encode(),
                            file_name=f'flight_delay_2024_{grouping}.csv', mime='text/csv', on_click='ignore')
-    with st.expander('Data source and calculation notes'):
+    with st.expander('Data notes', expanded=False):
+        st.caption(f"Source coverage: {metadata['date_min']} to {metadata['date_max']} · "
+                   f"{metadata['totals']['flights']:,} eligible flights · Cancelled flights excluded; diverted flights retained.")
         st.write('Full cleaned 2024 data, not a sample. A delayed departure is at least 15 minutes late. Rates divide summed delayed counts by summed flight counts, never average percentages.')
         st.write('Weekdays: Monday=1 through Sunday=7. Scheduled 2400 is grouped into hour 00 on its recorded date. Cancelled flights and records with missing departure delay are excluded.')
         st.caption('The compact data supports month-level filtering, not individual flight records, exact dates, medians, or delay distributions. Analysis airport coverage is independent of the model’s training categories.')

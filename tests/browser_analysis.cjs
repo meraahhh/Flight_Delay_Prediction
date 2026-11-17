@@ -7,6 +7,7 @@
  */
 const assert = require('node:assert/strict');
 const { chromium, webkit } = require('playwright');
+const {verifyChartSections} = require('./browser_helpers.cjs');
 
 (async () => {
   for (const [name, engine] of Object.entries({ webkit, chromium })) {
@@ -23,20 +24,15 @@ const { chromium, webkit } = require('playwright');
       const charts = page.getByTestId('stVegaLiteChart');
       async function verify(label, flights) {
         await page.getByTestId('stMetricValue').first().filter({ hasText: flights }).waitFor();
-        await page.waitForFunction(() => {
-          const charts = [...document.querySelectorAll('[data-testid="stVegaLiteChart"]')];
-          return charts.length === 7 && charts.every(chart => {
-            const graphic = chart.querySelector('canvas, svg.marks');
-            return graphic && graphic.getBoundingClientRect().width > 0;
-          });
-        });
+        await verifyChartSections(page);
         await page.waitForTimeout(700);
         assert.equal(await charts.count(), 7);
         assert.equal(await page.getByTestId('stException').count(), 0);
         assert.deepEqual(errors, [], `${name} ${label}: browser errors`);
-        console.log(`${name} ${label}: 7 rendered charts, correct flight count, no browser errors`);
+        console.log(`${name} ${label}: 7 charts expand/collapse individually, correct flight count, no browser errors`);
       }
       await verify('all months', '6,982,766');
+      await page.getByText('Filters', {exact:true}).click();
       const months = page.getByTestId('stMultiSelect').filter({ hasText: 'Months' });
       const input = months.getByRole('combobox');
       await input.focus();
