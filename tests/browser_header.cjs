@@ -12,6 +12,7 @@ const {webkit, chromium} = require('playwright');
     await page.goto(process.env.FLIGHT_APP_URL || 'http://127.0.0.1:8765');
     await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
     await page.locator('.brand').waitFor();
+    assert((await page.locator('.brand').innerText()).includes('Aviation Signature'));
     await page.locator('.st-key-site_navigation [role="radiogroup"] label').first().waitFor();
     await page.locator('.hero-title').waitFor();
     assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '), 'Predict Your Flight. Plan with Confidence.');
@@ -20,7 +21,7 @@ const {webkit, chromium} = require('playwright');
      const rgb = color => color.match(/[\d.]+/g).slice(0,3).map(Number);
      const luminance = color => rgb(color).map(v => v/255).map(v => v<=.04045 ? v/12.92 : ((v+.055)/1.055)**2.4).reduce((s,v,i)=>s+v*[.2126,.7152,.0722][i],0);
      const contrast = (a,b) => (Math.max(luminance(a),luminance(b))+.05)/(Math.min(luminance(a),luminance(b))+.05);
-     const bg = 'rgb(237,245,252)'; // Darkest end of the existing hero background.
+     const bg = 'rgb(245,240,233)'; // Warm ivory surface, including selected navigation.
      const headerBottom = document.querySelector('[data-testid="stHeader"]').getBoundingClientRect().bottom;
      const selectors = ['.brand','.brand small','.st-key-site_navigation [role="radiogroup"] label p','.hero-title','.hero-accent','.hero-copy','.eyebrow','.st-key-home_hero [data-testid="stCaptionContainer"] p','.st-key-home_hero button p'];
      const brandBottom=document.querySelector(".brand").getBoundingClientRect().bottom;

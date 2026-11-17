@@ -16,90 +16,94 @@ HERO_PATH = ROOT / 'assets/aviation-hero.jpg'
 DATA_PATH = ROOT / 'data/analysis/flight_analysis_2024.parquet'
 METADATA_PATH = ROOT / 'data/analysis/flight_analysis_2024.metadata.json'
 WEEKDAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-SKY = '#4A9CD2'
-TEAL = '#168B91'
+NAVY = '#14253D'
+BURGUNDY = '#922F48'
+GOLD = '#C5A47E'
 
-st.set_page_config(page_title='Flight Delay Prediction System', page_icon='✈️', layout='wide')
+st.set_page_config(page_title='Aviation Signature | Flight Intelligence', page_icon='✈️', layout='wide')
 st.markdown('''<style>
-.stApp {background: #F5F9FC; color: #50667B; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;}
+.stApp {background: #F5F0E9; color: #514F55; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;}
 /* Reserve space for Streamlit’s fixed 60px toolbar instead of covering it. */
 .block-container {max-width:1250px; padding:calc(3.75rem + .5rem) 2rem 2.5rem;}
-.stApp .block-container :is(h1,h2,h3,h4) {color:#142E48; letter-spacing:-.035em;}
+.stApp .block-container :is(h1,h2,h3,h4) {color:#14253D; letter-spacing:-.035em;}
 h2 {font-size:1.65rem !important; font-weight:600 !important;}
 h3 {font-size:1.25rem !important; font-weight:600 !important;}
 h4 {font-size:1rem !important; font-weight:600 !important;}
 p,label,li {font-size:.92rem; line-height:1.65;}
-[data-testid="stCaptionContainer"] {color:#63788A;}
+[data-testid="stCaptionContainer"] {color:#615B60;}
 [data-testid="stVerticalBlock"] {gap:.85rem;}
-[data-testid="stMetric"] {background:white; border:1px solid #E1E9F0;
- border-radius:12px; padding:.85rem 1rem; box-shadow:0 5px 18px #17395708;}
-[data-testid="stMetricLabel"] p {font-size:.77rem; color:#63788A;}
-[data-testid="stMetricValue"] {color:#142E48; font-size:clamp(1.2rem,2vw,1.65rem) !important; font-weight:600;}
-[data-testid="stForm"] {box-shadow:0 8px 30px #17395708; background:white; border:1px solid #E1E9F0; border-radius:16px; padding:1.3rem;}
-[data-testid="stExpander"] {background:white; border:1px solid #E1E9F0; border-radius:12px;}
-[data-testid="stVegaLiteChart"] {background:white; border:1px solid #E5EDF3; border-radius:12px;}
-[data-testid="stForm"] [data-testid="stWidgetLabel"] p {color:#264963; font-weight:550;}
-[data-baseweb="input"],[data-baseweb="select"] > div {border-radius:9px; background:#F2F8FC; border-color:#D7E5EE;}
+[data-testid="stMetric"] {background:white; border:1px solid #E5DDD3;
+ border-radius:12px; padding:.85rem 1rem; box-shadow:0 5px 18px #14253D08;}
+[data-testid="stMetricLabel"] p {font-size:.77rem; color:#615B60;}
+[data-testid="stMetricValue"] {color:#14253D; font-size:clamp(1.2rem,2vw,1.65rem) !important; font-weight:600;}
+[data-testid="stForm"] {box-shadow:0 8px 30px #14253D08; background:white; border:1px solid #E5DDD3; border-radius:16px; padding:1.3rem;}
+[data-testid="stExpander"] {background:white; border:1px solid #E5DDD3; border-radius:12px;}
+[data-testid="stVegaLiteChart"] {background:white; border:1px solid #E5DDD3; border-radius:12px;}
+[data-testid="stForm"] [data-testid="stWidgetLabel"] p {color:#14253D; font-weight:550;}
+[data-baseweb="input"],[data-baseweb="select"] > div {border-radius:9px; background:#FFFFFF; border-color:#DCD1C5;}
 div.stButton > button,div.stFormSubmitButton > button,div.stDownloadButton > button {
  border-radius:9px; min-height:2.6rem; font-size:.88rem;
  transition:background-color .18s ease,border-color .18s ease,box-shadow .18s ease;}
 div.stButton > button:hover,div.stDownloadButton > button:hover {
- border-color:#7BA8C6; background:#EFF6FC; color:#173D5F; box-shadow:0 3px 10px #204D7110;}
+ border-color:#C5A47E; background:#F5F0E9; color:#14253D; box-shadow:0 3px 10px #14253D10;}
 div.stButton > button[kind="primary"],div.stFormSubmitButton > button[kind="primary"] {
- background:linear-gradient(115deg,#1D668D,#187680); border:1px solid #1D668D; color:white;}
+ background:#922F48; border:1px solid #922F48; color:white;}
 div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind="primary"]:hover {
- background:#1C496D; border-color:#1C496D; box-shadow:0 4px 12px #245A8320;}
-.st-key-site_navigation {padding:.25rem 0 1rem; border-bottom:1px solid #DEE8F0; margin-bottom:.5rem;}
-.brand {display:flex; align-items:center; gap:.65rem; color:#142E48; font-size:1rem; font-weight:650; line-height:1.2;}
-.brand-icon {background:#E7F1FA; color:#245A83; border-radius:10px; padding:.65rem; font-size:1.15rem;}
-.brand small {display:block; font-size:.68rem; letter-spacing:.1em; font-weight:500; color:#546E82; margin-top:.3rem; text-transform:uppercase;}
+ background:#76233A; border-color:#76233A; box-shadow:0 4px 12px #922F4820;}
+.st-key-site_navigation {padding:.25rem 0 1rem; border-bottom:1px solid #DDD1C2; margin-bottom:.5rem;}
+.brand {font-family:Georgia,"Times New Roman",serif; display:flex; align-items:center; gap:.65rem; color:#14253D; font-size:1rem; font-weight:650; line-height:1.2;}
+.brand-icon {background:#14253D; color:#C5A47E; border-radius:10px; padding:.65rem; font-size:1.15rem;}
+.brand small {font-family:ui-sans-serif,system-ui,sans-serif; display:block; font-size:.68rem; letter-spacing:.1em; font-weight:500; color:#615B60; margin-top:.3rem; text-transform:uppercase;}
 .st-key-site_navigation [role="radiogroup"] {justify-content:flex-end; gap:.2rem; flex-wrap:wrap;}
-.st-key-site_navigation [role="radiogroup"] label {color:#354F65; margin:0; padding:.55rem .75rem; border-radius:8px; transition:background .18s;}
+.st-key-site_navigation [role="radiogroup"] label {color:#14253D; margin:0; padding:.55rem .75rem; border-radius:8px; transition:background .18s;}
 .st-key-site_navigation [role="radiogroup"] label p {color:inherit;}
-.st-key-site_navigation [role="radiogroup"] label:hover {background:#EAF3FA;}
-.st-key-site_navigation [role="radiogroup"] label:has(input:checked) {background:#E4F3F6; color:#155D70;}
+.st-key-site_navigation [role="radiogroup"] label:hover {background:#F5F0E9;}
+.st-key-site_navigation [role="radiogroup"] label:has(input:checked) {background:#EEE5DF; color:#922F48;}
 /* Hide only the decorative radio dot; keep the accessible native input. */
 .st-key-site_navigation [data-testid="stRadioOption"] > div > div:first-child:not([data-testid="stMarkdownContainer"]) {display:none;}
-.st-key-site_navigation [role="radiogroup"] label:focus-within {outline:2px solid #719FBF; outline-offset:2px;}
-.st-key-home_hero {background:#FFFFFF; border:1px solid #DDEAF2; border-radius:22px;
- padding:1.7rem; margin:.4rem 0; box-shadow:0 12px 36px #153F6310;}
-.st-key-home_hero .eyebrow {color:#187680; text-transform:uppercase; letter-spacing:.13em;
+.st-key-site_navigation [role="radiogroup"] label:focus-within {outline:2px solid #922F48; outline-offset:2px;}
+.st-key-home_hero {background:#FFFFFF; border:1px solid #E5DDD3; border-radius:22px;
+ padding:1.7rem; margin:.4rem 0; box-shadow:0 12px 36px #14253D0C;}
+.st-key-home_hero .eyebrow {color:#922F48; text-transform:uppercase; letter-spacing:.13em;
  font-size:.7rem; font-weight:650; margin-bottom:.8rem; display:flex; align-items:center; gap:.5rem;}
-.st-key-home_hero .eyebrow::before {content:''; width:20px; height:2px; background:#C6A164;}
-.st-key-home_hero h1.hero-title {font-size:clamp(1.9rem,3.3vw,2.8rem); font-weight:650; line-height:1.15;
- color:#142E48; letter-spacing:-.045em; margin:.3rem 0 1rem;}
-.st-key-home_hero .hero-title .hero-accent {color:#187680;}
-.st-key-home_hero .hero-copy {max-width:29rem; color:#50667B; font-size:.97rem; margin-bottom:.8rem;}
-.st-key-home_hero [data-testid="stCaptionContainer"] p {color:#546E82; font-size:.77rem;}
-.hero-photo {position:relative; margin:0; border-radius:16px; overflow:hidden; background:#DDEAF2;}
+.st-key-home_hero .eyebrow::before {content:''; width:20px; height:2px; background:#C5A47E;}
+.st-key-home_hero h1.hero-title {font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.9rem,3.3vw,2.8rem); font-weight:500; line-height:1.15;
+ color:#14253D; letter-spacing:-.035em; margin:.3rem 0 1rem;}
+.st-key-home_hero .hero-title .hero-accent {color:#922F48;}
+.st-key-home_hero .hero-copy {max-width:29rem; color:#514F55; font-size:.97rem; margin-bottom:.8rem;}
+.st-key-home_hero [data-testid="stCaptionContainer"] p {color:#615B60; font-size:.77rem;}
+.hero-photo {position:relative; margin:0; border-radius:16px; overflow:hidden; background:#E5DDD3;}
+.hero-photo::after {content:""; position:absolute; inset:0; background:rgba(20,37,61,.16); pointer-events:none;}
 .hero-photo img {width:100%; height:390px; display:block; object-fit:cover; object-position:center 35%;}
-.hero-photo figcaption {position:absolute; bottom:16px; left:16px; right:16px; background:#FFFFFFF2;
+.hero-photo figcaption {position:absolute; z-index:1; bottom:16px; left:16px; right:16px; background:#FFFFFFF2;
  border:1px solid #FFFFFF80; border-radius:10px; padding:.8rem 1rem; display:flex; justify-content:space-between;
- gap:.8rem; align-items:center; color:#193B57; font-size:.78rem; box-shadow:0 4px 16px #12334D15;}
-.hero-photo figcaption strong {display:block; color:#193B57; font-size:.88rem;}
-.hero-photo figcaption .photo-badge {background:#E3F4F3; color:#176972; border-radius:20px;
+ gap:.8rem; align-items:center; color:#14253D; font-size:.78rem; box-shadow:0 4px 16px #14253D15;}
+.hero-photo figcaption strong {display:block; color:#14253D; font-size:.88rem;}
+.hero-photo figcaption .photo-badge {background:#F5F0E9; color:#76233A; border-radius:20px;
  padding:.35rem .65rem; font-size:.7rem; white-space:nowrap;}
-.asset-credit {text-align:right; font-size:.68rem; color:#60778A; margin:.45rem .2rem 0;}
-.asset-credit a {color:#496B85; text-decoration:none;}
+.editorial-intro {border-left:2px solid #C5A47E; padding:.2rem 0 .2rem 1rem; margin:0 0 1.2rem; max-width:48rem; color:#514F55;}
+.editorial-intro strong {display:block; color:#14253D; font-family:Georgia,serif; font-size:1.3rem; font-weight:400; margin-bottom:.35rem;}
+.asset-credit {text-align:right; font-size:.68rem; color:#615B60; margin:.45rem .2rem 0;}
+.asset-credit a {color:#76233A; text-decoration:none;}
 .booking-strip {display:flex; justify-content:space-between; align-items:center; gap:1rem;
- border-bottom:1px dashed #C5DCE7; padding:0 0 1rem; margin:0 0 .6rem; color:#193B57;}
+ border-bottom:1px dashed #DDD1C2; padding:0 0 1rem; margin:0 0 .6rem; color:#14253D;}
 .booking-strip .booking-title {font-size:1.05rem; font-weight:650;}
-.booking-strip small {display:block; color:#60788A; font-size:.77rem; margin-top:.2rem;}
-.booking-strip .ticket-label {background:#E2F4F3; color:#176972; padding:.35rem .75rem; border-radius:20px; font-size:.73rem;}
-.st-key-prediction_results [data-testid="stMetric"] {border-top:3px solid #459FD0; background:#F5FBFF;}
-.st-key-prediction_results [data-testid="stColumn"]:last-child [data-testid="stMetric"] {border-top-color:#C3A065; background:#FFFCF5;}
-.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {border-top:3px solid #459FD0; background:#F3FAFF;}
-.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] {border-top:3px solid #24A7A6; background:#F0FAF9;}
-.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {border-top:3px solid #244F74; background:#F5F8FD;}
-.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {border-top:3px solid #C3A065; background:#FFFCF5;}
-.feature-card {background:white; border:1px solid #E1E9F0; border-top:3px solid #51A8D2; border-radius:14px; padding:1.2rem; min-height:175px;}
-.feature-card .number {font-size:.74rem; letter-spacing:.1em; color:#187680;}
-.feature-card.teal {border-top-color:#28A6A3;}
-.feature-card.gold {border-top-color:#C3A065;}
+.booking-strip small {display:block; color:#615B60; font-size:.77rem; margin-top:.2rem;}
+.booking-strip .ticket-label {background:#F5F0E9; color:#76233A; padding:.35rem .75rem; border-radius:20px; font-size:.73rem;}
+.st-key-prediction_results [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
+.st-key-prediction_results [data-testid="stColumn"]:last-child [data-testid="stMetric"] {border-top-color:#C5A47E; background:#F5F0E9;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(2) [data-testid="stMetric"] {border-top:3px solid #14253D; background:#FFFFFF;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
+.st-key-analysis_kpis [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {border-top:3px solid #C5A47E; background:#F5F0E9;}
+.feature-card {background:white; border:1px solid #E5DDD3; border-top:3px solid #14253D; border-radius:14px; padding:1.2rem; min-height:175px;}
+.feature-card .number {font-size:.74rem; letter-spacing:.1em; color:#922F48;}
+.feature-card.burgundy {border-top-color:#922F48;}
+.feature-card.gold {border-top-color:#C5A47E;}
 .feature-card h3 {font-size:1.06rem !important; margin:.5rem 0; padding:0;}
-.feature-card p {font-size:.86rem; margin:0; color:#63788A;}
-.site-footer {border-top:1px solid #DEE8F0; margin-top:1.6rem; padding-top:.85rem;
- color:#728596; font-size:.75rem; display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
+.feature-card p {font-size:.86rem; margin:0; color:#615B60;}
+.site-footer {border-top:1px solid #DDD1C2; margin-top:1.6rem; padding-top:.85rem;
+ color:#615B60; font-size:.75rem; display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap;}
 @media(max-width:760px) {
  .block-container {padding:calc(3.75rem + .5rem) .85rem 1.5rem;}
  [data-testid="stHorizontalBlock"] {flex-direction:column; gap:.7rem;}
@@ -200,6 +204,7 @@ def prediction_dashboard():
 
 def about_section():
     st.subheader('About the system')
+    st.html('<div class="editorial-intro"><strong>Aviation Signature</strong>A considered approach to flight intelligence. Designed to make historical patterns understandable and model estimates transparent.</div>')
     st.write('A university Data Science project connecting machine learning with a clear view of historical aviation patterns.')
     st.markdown('#### The prediction model')
     st.write('The saved pipeline fills missing values, one-hot encodes airline and airport codes, and uses a Random Forest to estimate departure delay risk from eight calendar, route, schedule, and distance features.')
@@ -222,12 +227,12 @@ def style_chart(chart, height):
     return (chart.properties(height=height, background='#FFFFFF',
                              padding={'left': 12, 'right': 12, 'top': 12, 'bottom': 20})
             .configure_view(stroke=None)
-            .configure_axis(labelColor='#59676D', titleColor='#59676D', labelFontSize=11,
-                            titleFontSize=11, titleFontWeight='normal', gridColor='#EEF0EB',
-                            domainColor='#DFE4DE', tickColor='#DFE4DE', labelPadding=7,
+            .configure_axis(labelColor='#514F55', titleColor='#514F55', labelFontSize=11,
+                            titleFontSize=11, titleFontWeight='normal', gridColor='#F0E9E1',
+                            domainColor='#DDD1C2', tickColor='#DDD1C2', labelPadding=7,
                             titlePadding=10)
             .configure_axisX(grid=False, labelOverlap=True)
-            .configure_legend(labelColor='#59676D', titleColor='#46545B', labelFontSize=11,
+            .configure_legend(labelColor='#514F55', titleColor='#14253D', labelFontSize=11,
                               titleFontSize=11, titleFontWeight='normal'))
 
 
@@ -242,8 +247,8 @@ def rate_chart(table, x, title, order=None, line=False):
         tooltip=[alt.Tooltip(f'{x}:N', title=title), alt.Tooltip('flights:Q', format=',', title='Flights'),
                  alt.Tooltip('delayed_flights:Q', format=',', title='Delayed flights'),
                  alt.Tooltip('delay_rate_pct:Q', format='.2f', title='Delay rate (%)')])
-    color = {'Month': TEAL, 'departure_hour': '#358DC2', 'op_unique_carrier': '#448FC1',
-             'origin': '#29A39E', 'dest': '#B18C48', 'Weekday': '#348B98'}.get(x, SKY)
+    color = {'Month': BURGUNDY, 'departure_hour': NAVY, 'op_unique_carrier': BURGUNDY,
+             'origin': '#6E5260', 'dest': '#9A784F', 'Weekday': NAVY}.get(x, NAVY)
     chart = (base.mark_line(color=color, strokeWidth=2, point=alt.OverlayMarkDef(size=28, filled=True))
              if line else base.mark_bar(color=color, cornerRadiusTopLeft=3, cornerRadiusTopRight=3))
     st.altair_chart(style_chart(chart, height=235), width='stretch')
@@ -342,7 +347,7 @@ def analysis_dashboard():
                     axis=alt.Axis(labelAngle=0, labelExpr="datum.value % 3 == 0 ? datum.label : ''")),
             y=alt.Y('Weekday:N', sort=WEEKDAYS, title=None),
             color=alt.Color('delay_rate_pct:Q', title='Delay rate (%)',
-                            scale=alt.Scale(range=['#EFF8FB', '#C9EBF3', '#79CDD0', '#268F9D', '#193E60'], domainMin=0),
+                            scale=alt.Scale(range=['#F5F0E9', '#D8C5B1', '#B38087', '#922F48', '#14253D'], domainMin=0),
                             legend=alt.Legend(orient='bottom', direction='horizontal', gradientLength=180,
                                               gradientThickness=10, format='.0f', titlePadding=8)),
             tooltip=['Weekday:N', alt.Tooltip('departure_hour:O', title='Hour'),
@@ -369,13 +374,13 @@ def analysis_dashboard():
         detail = summarize(selected, [grouping])
         st.dataframe(detail, hide_index=True, width='stretch')
         st.download_button('Download filtered summary (CSV)', detail.to_csv(index=False).encode(),
-                           file_name=f'flight_delay_2024_{grouping}.csv', mime='text/csv')
+                           file_name=f'flight_delay_2024_{grouping}.csv', mime='text/csv', on_click='ignore')
     with st.expander('Data source and calculation notes'):
         st.write('Full cleaned 2024 data, not a sample. A delayed departure is at least 15 minutes late. Rates divide summed delayed counts by summed flight counts, never average percentages.')
         st.write('Weekdays: Monday=1 through Sunday=7. Scheduled 2400 is grouped into hour 00 on its recorded date. Cancelled flights and records with missing departure delay are excluded.')
         st.caption('The compact data supports month-level filtering, not individual flight records, exact dates, medians, or delay distributions. Analysis airport coverage is independent of the model’s training categories.')
         st.download_button('Download data metadata (JSON)', json.dumps(metadata, indent=2),
-                           file_name=METADATA_PATH.name, mime='application/json')
+                           file_name=METADATA_PATH.name, mime='application/json', on_click='ignore')
 
 
 
@@ -393,7 +398,7 @@ def home_section():
     with st.container(key='home_hero'):
         intro, visual = st.columns([1, 1.14], gap='large', vertical_alignment='center')
         with intro:
-            st.html('<div class="eyebrow">A smarter way to take flight</div><h1 class="hero-title">Predict Your Flight.<br><span class="hero-accent">Plan with Confidence.</span></h1><p class="hero-copy">A clearer outlook for your next journey. Estimate departure delay risk and discover the patterns behind US air travel.</p>')
+            st.html('<div class="eyebrow">Aviation Signature · A considered journey</div><h1 class="hero-title">Predict Your Flight.<br><span class="hero-accent">Plan with Confidence.</span></h1><p class="hero-copy">A clearer outlook for your next journey. Estimate departure delay risk and discover the patterns behind US air travel.</p>')
             predict, explore = st.columns(2)
             predict.button('Predict Flight', type='primary', on_click=navigate,
                            args=('Flight Prediction',), width='stretch', icon=':material/flight_takeoff:')
@@ -401,9 +406,9 @@ def home_section():
                            args=('Flight Analytics',), width='stretch', icon=':material/monitoring:')
             st.caption('2024 US flight data · Model estimates, not live flight status')
         with visual:
-            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>A fresh perspective on flight</strong>Historical insights. Thoughtful planning.</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
+            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>The art of a considered journey</strong>Historical insights. Thoughtful planning.</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
     st.markdown('### From flight details to a clearer outlook')
-    for col, icon, accent, title, copy in zip(st.columns(3, gap='medium'), ['↗', '▥', '◎'], ['', 'teal', 'gold'],
+    for col, icon, accent, title, copy in zip(st.columns(3, gap='medium'), ['↗', '▥', '◎'], ['', 'burgundy', 'gold'],
             ['Plan your departure', 'Discover flight patterns', 'Know what drives the estimate'],
             ['Your airline, route, and schedule come together in a clear delay-risk estimate.',
              'Explore airports, airlines, and departure times with interactive full-data analytics.',
@@ -415,7 +420,7 @@ def home_section():
 with st.container(key='site_navigation'):
     brand, navigation = st.columns([1, 2], vertical_alignment='center')
     with brand:
-        st.markdown('<div class="brand"><span class="brand-icon" aria-hidden="true">✈</span><span>Flight Delay<small>Prediction & intelligence</small></span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="brand"><span class="brand-icon" aria-hidden="true">✈</span><span>Aviation Signature<small>Flight intelligence</small></span></div>', unsafe_allow_html=True)
     with navigation:
         section = st.radio('Website navigation', ['Home', 'Flight Prediction', 'Flight Analytics', 'About'],
                            horizontal=True, key='site_section', label_visibility='collapsed')
@@ -427,4 +432,4 @@ elif section == 'Flight Analytics':
     analysis_dashboard()
 else:
     about_section()
-st.markdown('<footer class="site-footer"><span>Flight Delay Prediction System · University Data Science project</span><span>Historical insights. Informed perspectives.</span></footer>', unsafe_allow_html=True)
+st.markdown('<footer class="site-footer"><span>Aviation Signature · A university Data Science project</span><span>Clarity for every departure.</span></footer>', unsafe_allow_html=True)

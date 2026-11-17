@@ -1,4 +1,4 @@
-# Flight Delay Prediction System
+# Aviation Signature — Flight Delay Prediction System
 
 A university Data Science project presented as an aviation website, combining a Random Forest flight-delay predictor with interactive analysis of the full cleaned 2024 US flight dataset.
 
@@ -133,7 +133,7 @@ The grouped table supports the documented combined filters, not individual fligh
 
 ## Visual design and bundled photography
 
-The website uses an airline-inspired navy, sky-blue, turquoise, and white palette with subtle gold accents. Home includes the headline “Predict Your Flight. Plan with Confidence.”, a locally bundled aviation photograph, and functional navigation buttons. The prediction form uses a booking-style layout; analytics retains all seven charts, filters, KPI calculations, heatmap, and downloads.
+Aviation Signature uses an original premium aviation identity: deep navy `#14253D`, burgundy `#922F48`, warm ivory `#F5F0E9`, white `#FFFFFF`, and champagne gold `#C5A47E`. Burgundy actions, serif display typography, restrained card accents, a subtle navy photo overlay, and editorial About content are applied consistently across the four sections. No airline logos or proprietary brand assets are used. Home includes the headline “Predict Your Flight. Plan with Confidence.”, a locally bundled aviation photograph, and functional navigation buttons. The prediction form uses a booking-style layout; analytics retains all seven charts, filters, KPI calculations, heatmap, and downloads.
 
 `assets/aviation-hero.jpg` is a 1920 × 1440 photograph credited to Pixabay on Pexels, used under the [Pexels License](https://www.pexels.com/license/). Source, download details, and usage notes are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Visible credit appears beside the hero image. The image is read from local bytes and embedded, so Streamlit Cloud does not need a remote image request. Include the entire `assets/` directory when deploying. No AI-generated hero imagery is used.
 
