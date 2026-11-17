@@ -10,12 +10,12 @@ const {webkit, chromium} = require('playwright');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(process.env.FLIGHT_APP_URL || 'http://127.0.0.1:8765');
-    await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Predict Your Flight',exact:true}).waitFor();
     await page.locator('.brand').waitFor();
-    assert((await page.locator('.brand').innerText()).includes('Aviation Signature'));
+    assert((await page.locator('.brand').innerText()).includes('AVIATION SIGNATURE'));
     await page.locator('.st-key-site_navigation [role="radiogroup"] label').first().waitFor();
     await page.locator('.hero-title').waitFor();
-    assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '), 'Predict Your Flight. Plan with Confidence.');
+    assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '), 'Fly Smarter. Travel with Confidence.');
     assert(await page.locator('.hero-photo img').evaluate(img=>img.complete&&img.naturalWidth===1920&&img.src.startsWith('data:image/jpeg;base64,'))); 
     const result = await page.evaluate(() => {
      const rgb = color => color.match(/[\d.]+/g).slice(0,3).map(Number);
@@ -52,9 +52,9 @@ const {webkit, chromium} = require('playwright');
     for(const section of ['About','Flight Prediction','Flight Analytics','Home']){
      await nav.getByText(section,{exact:true}).click(); // No force; fails if covered.
      if(section!=='Home') await page.getByRole('heading',{name:section==='About'?'About the system':section,exact:true}).waitFor();
-     else await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
+     else await page.getByRole('button',{name:'Predict Your Flight',exact:true}).waitFor();
     }
-    for(const name of ['Predict Flight','Explore Analytics']){
+    for(const name of ['Predict Your Flight','Explore Analytics']){
      const button=page.getByRole('button',{name,exact:true});
      await button.hover();
      await page.waitForTimeout(220);

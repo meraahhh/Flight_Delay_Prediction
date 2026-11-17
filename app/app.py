@@ -97,6 +97,7 @@ div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind
 .st-key-analysis_kpis [data-testid="stColumn"]:nth-child(3) [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
 .st-key-analysis_kpis [data-testid="stColumn"]:nth-child(4) [data-testid="stMetric"] {border-top:3px solid #C5A47E; background:#F5F0E9;}
 .feature-card {background:white; border:1px solid #E5DDD3; border-top:3px solid #14253D; border-radius:14px; padding:1.2rem; min-height:175px;}
+.section-kicker {color:#922F48; font-size:.7rem; font-weight:600; letter-spacing:.13em; margin-top:1rem;}
 .feature-card .number {font-size:.74rem; letter-spacing:.1em; color:#922F48;}
 .feature-card.burgundy {border-top-color:#922F48;}
 .feature-card.gold {border-top-color:#C5A47E;}
@@ -398,29 +399,30 @@ def home_section():
     with st.container(key='home_hero'):
         intro, visual = st.columns([1, 1.14], gap='large', vertical_alignment='center')
         with intro:
-            st.html('<div class="eyebrow">Aviation Signature · A considered journey</div><h1 class="hero-title">Predict Your Flight.<br><span class="hero-accent">Plan with Confidence.</span></h1><p class="hero-copy">A clearer outlook for your next journey. Estimate departure delay risk and discover the patterns behind US air travel.</p>')
+            st.html('<div class="eyebrow">YOUR JOURNEY, WITH GREATER CLARITY.</div><h1 class="hero-title">Fly Smarter.<br><span class="hero-accent">Travel with Confidence.</span></h1><p class="hero-copy">Explore flight delay predictions and travel patterns through intelligent flight analytics.</p>')
             predict, explore = st.columns(2)
-            predict.button('Predict Flight', type='primary', on_click=navigate,
+            predict.button('Predict Your Flight', type='primary', on_click=navigate,
                            args=('Flight Prediction',), width='stretch', icon=':material/flight_takeoff:')
             explore.button('Explore Analytics', on_click=navigate,
                            args=('Flight Analytics',), width='stretch', icon=':material/monitoring:')
-            st.caption('2024 US flight data · Model estimates, not live flight status')
+            st.caption('Powered by historical flight data · 2024')
         with visual:
-            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>The art of a considered journey</strong>Historical insights. Thoughtful planning.</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
-    st.markdown('### From flight details to a clearer outlook')
-    for col, icon, accent, title, copy in zip(st.columns(3, gap='medium'), ['↗', '▥', '◎'], ['', 'burgundy', 'gold'],
-            ['Plan your departure', 'Discover flight patterns', 'Know what drives the estimate'],
-            ['Your airline, route, and schedule come together in a clear delay-risk estimate.',
-             'Explore airports, airlines, and departure times with interactive full-data analytics.',
-             'Transparent model performance and clear limitations, so you can interpret every result.']):
+            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>Your journey, with greater clarity.</strong>Historical flight data · 2024</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
+    st.html('<div class="section-kicker">FLIGHT INTELLIGENCE</div>')
+    st.markdown('### A clearer view of every departure.')
+    for col, number, accent, title, copy in zip(st.columns(3, gap='medium'), ['01', '02', '03'], ['', 'burgundy', 'gold'],
+            ['Flight Prediction', 'Flight Analytics', 'Performance & Insights'],
+            ['Discover the estimated probability of departure delays based on your flight details.',
+             'Explore airline performance, airport trends, and departure patterns.',
+             'Discover the data and technology behind every prediction.']):
         with col:
-            st.html(f'<article class="feature-card {accent}"><div class="number" aria-hidden="true">{icon}</div><h3>{title}</h3><p>{copy}</p></article>')
+            st.html(f'<article class="feature-card {accent}"><div class="number">{number} —</div><h3>{title}</h3><p>{copy}</p></article>')
 
 
 with st.container(key='site_navigation'):
     brand, navigation = st.columns([1, 2], vertical_alignment='center')
     with brand:
-        st.markdown('<div class="brand"><span class="brand-icon" aria-hidden="true">✈</span><span>Aviation Signature<small>Flight intelligence</small></span></div>', unsafe_allow_html=True)
+        st.markdown('<div class="brand"><span class="brand-icon" aria-hidden="true">✈</span><span>AVIATION SIGNATURE<small>Flight intelligence</small></span></div>', unsafe_allow_html=True)
     with navigation:
         section = st.radio('Website navigation', ['Home', 'Flight Prediction', 'Flight Analytics', 'About'],
                            horizontal=True, key='site_section', label_visibility='collapsed')
@@ -432,4 +434,4 @@ elif section == 'Flight Analytics':
     analysis_dashboard()
 else:
     about_section()
-st.markdown('<footer class="site-footer"><span>Aviation Signature · A university Data Science project</span><span>Clarity for every departure.</span></footer>', unsafe_allow_html=True)
+st.markdown('<footer class="site-footer"><span>AVIATION SIGNATURE</span><span>Precision in Every Prediction.</span></footer>', unsafe_allow_html=True)

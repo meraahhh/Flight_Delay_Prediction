@@ -9,7 +9,7 @@ pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Flight” and “Explore Analytics” buttons. Analytics filters are organized in an expandable panel above the charts and persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
+Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Your Flight” and “Explore Analytics” buttons. Analytics filters are organized in an expandable panel above the charts and persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
 
 ## Prediction Dashboard
 
@@ -133,7 +133,7 @@ The grouped table supports the documented combined filters, not individual fligh
 
 ## Visual design and bundled photography
 
-Aviation Signature uses an original premium aviation identity: deep navy `#14253D`, burgundy `#922F48`, warm ivory `#F5F0E9`, white `#FFFFFF`, and champagne gold `#C5A47E`. Burgundy actions, serif display typography, restrained card accents, a subtle navy photo overlay, and editorial About content are applied consistently across the four sections. No airline logos or proprietary brand assets are used. Home includes the headline “Predict Your Flight. Plan with Confidence.”, a locally bundled aviation photograph, and functional navigation buttons. The prediction form uses a booking-style layout; analytics retains all seven charts, filters, KPI calculations, heatmap, and downloads.
+Aviation Signature uses an original premium aviation identity: deep navy `#14253D`, burgundy `#922F48`, warm ivory `#F5F0E9`, white `#FFFFFF`, and champagne gold `#C5A47E`. Burgundy actions, serif display typography, restrained card accents, a subtle navy photo overlay, and editorial About content are applied consistently across the four sections. No airline logos or proprietary brand assets are used. Home includes the headline “Fly Smarter. Travel with Confidence.”, a locally bundled aviation photograph, and functional navigation buttons. The prediction form uses a booking-style layout; analytics retains all seven charts, filters, KPI calculations, heatmap, and downloads.
 
 `assets/aviation-hero.jpg` is a 1920 × 1440 photograph credited to Pixabay on Pexels, used under the [Pexels License](https://www.pexels.com/license/). Source, download details, and usage notes are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Visible credit appears beside the hero image. The image is read from local bytes and embedded, so Streamlit Cloud does not need a remote image request. Include the entire `assets/` directory when deploying. No AI-generated hero imagery is used.
 

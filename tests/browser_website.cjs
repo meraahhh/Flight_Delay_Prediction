@@ -20,9 +20,9 @@ async function downloadText(download) {
     await page.goto(process.env.FLIGHT_APP_URL||'http://127.0.0.1:8765');
     await page.locator('.hero-photo img').waitFor();
     assert(await page.locator('.hero-photo img').evaluate(img=>img.complete&&img.naturalWidth===1920));
-    assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '),'Predict Your Flight. Plan with Confidence.');
+    assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '),'Fly Smarter. Travel with Confidence.');
     await page.screenshot({path:`/tmp/airline-home-${name}-${width}.png`,fullPage:true});
-    await page.getByRole('button',{name:'Predict Flight',exact:true}).click();
+    await page.getByRole('button',{name:'Predict Your Flight',exact:true}).click();
     const submit=page.getByRole('button',{name:'Predict Flight Delay',exact:true});
     await submit.waitFor();
     await page.getByTestId('stForm').getByRole('combobox').first().waitFor();
