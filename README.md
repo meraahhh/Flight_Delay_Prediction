@@ -9,7 +9,7 @@ pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Your Flight” and “Explore Analytics” buttons. Analytics filters are organized in an expandable panel above the charts and persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
+Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Flight” and “View Analytics” buttons. Analytics filters are organized in an expandable panel above the charts and persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
 
 ## Prediction Dashboard
 

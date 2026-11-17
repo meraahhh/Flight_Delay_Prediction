@@ -19,7 +19,7 @@ const { chromium, webkit } = require('playwright');
         if (message.type() === 'error') errors.push(message.text());
       });
       await page.goto(process.env.FLIGHT_APP_URL || 'http://127.0.0.1:8765');
-      await page.getByRole('button', { name: 'Explore Analytics', exact: true }).click();
+      await page.getByRole('button', { name: 'View Analytics', exact: true }).click();
       const charts = page.getByTestId('stVegaLiteChart');
       async function verify(label, flights) {
         await page.getByTestId('stMetricValue').first().filter({ hasText: flights }).waitFor();

@@ -145,7 +145,7 @@ def load_analysis():
 
 def prediction_dashboard():
     st.subheader('Flight Prediction')
-    st.write('Enter your flight details to estimate the chance of a departure delay of 15 minutes or more.')
+    st.write('Enter your flight details and check your delay risk.')
     st.caption('Trained on 2024 US flights. Future-date predictions are estimates; this is not live flight status.')
     try:
         model = load_model()
@@ -277,7 +277,7 @@ def filter_select(label, options, key, formatter=str):
 
 def analysis_dashboard():
     st.subheader('Flight Analytics')
-    st.write('Explore observed departure delays across the full cleaned dataset. All charts and insights follow your filters.')
+    st.write('Explore flight delays by airline, airport, and month.')
     try:
         data, metadata = load_analysis()
     except (OSError, ValueError, KeyError) as exc:
@@ -399,24 +399,20 @@ def home_section():
     with st.container(key='home_hero'):
         intro, visual = st.columns([1, 1.14], gap='large', vertical_alignment='center')
         with intro:
-            st.html('<div class="eyebrow">YOUR JOURNEY, WITH GREATER CLARITY.</div><h1 class="hero-title">Fly Smarter.<br><span class="hero-accent">Travel with Confidence.</span></h1><p class="hero-copy">Explore flight delay predictions and travel patterns through intelligent flight analytics.</p>')
+            st.html('<h1 class="hero-title">Fly Smarter.<br><span class="hero-accent">Travel with Confidence.</span></h1><p class="hero-copy">Predict your flight delay risk with ease.</p>')
             predict, explore = st.columns(2)
-            predict.button('Predict Your Flight', type='primary', on_click=navigate,
+            predict.button('Predict Flight', type='primary', on_click=navigate,
                            args=('Flight Prediction',), width='stretch', icon=':material/flight_takeoff:')
-            explore.button('Explore Analytics', on_click=navigate,
+            explore.button('View Analytics', on_click=navigate,
                            args=('Flight Analytics',), width='stretch', icon=':material/monitoring:')
-            st.caption('Powered by historical flight data · 2024')
         with visual:
-            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"><figcaption><span><strong>Your journey, with greater clarity.</strong>Historical flight data · 2024</span><span class="photo-badge">Flight intelligence</span></figcaption></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
-    st.html('<div class="section-kicker">FLIGHT INTELLIGENCE</div>')
-    st.markdown('### A clearer view of every departure.')
-    for col, number, accent, title, copy in zip(st.columns(3, gap='medium'), ['01', '02', '03'], ['', 'burgundy', 'gold'],
-            ['Flight Prediction', 'Flight Analytics', 'Performance & Insights'],
-            ['Discover the estimated probability of departure delays based on your flight details.',
-             'Explore airline performance, airport trends, and departure patterns.',
-             'Discover the data and technology behind every prediction.']):
+            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
+    for col, accent, title, copy in zip(st.columns(2, gap='medium'), ['', 'burgundy'],
+            ['Flight Prediction', 'Flight Analytics'],
+            ['Enter your flight details and check your delay risk.',
+             'Explore flight delays by airline, airport, and month.']):
         with col:
-            st.html(f'<article class="feature-card {accent}"><div class="number">{number} —</div><h3>{title}</h3><p>{copy}</p></article>')
+            st.html(f'<article class="feature-card {accent}"><h3>{title}</h3><p>{copy}</p></article>')
 
 
 with st.container(key='site_navigation'):
@@ -434,4 +430,4 @@ elif section == 'Flight Analytics':
     analysis_dashboard()
 else:
     about_section()
-st.markdown('<footer class="site-footer"><span>AVIATION SIGNATURE</span><span>Precision in Every Prediction.</span></footer>', unsafe_allow_html=True)
+st.markdown('<footer class="site-footer"><span>AVIATION SIGNATURE</span></footer>', unsafe_allow_html=True)

@@ -10,7 +10,7 @@ const {webkit, chromium} = require('playwright');
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
     await page.goto(process.env.FLIGHT_APP_URL || 'http://127.0.0.1:8765');
-    await page.getByRole('button',{name:'Predict Your Flight',exact:true}).waitFor();
+    await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
     await page.locator('.brand').waitFor();
     assert((await page.locator('.brand').innerText()).includes('AVIATION SIGNATURE'));
     await page.locator('.st-key-site_navigation [role="radiogroup"] label').first().waitFor();
@@ -52,9 +52,9 @@ const {webkit, chromium} = require('playwright');
     for(const section of ['About','Flight Prediction','Flight Analytics','Home']){
      await nav.getByText(section,{exact:true}).click(); // No force; fails if covered.
      if(section!=='Home') await page.getByRole('heading',{name:section==='About'?'About the system':section,exact:true}).waitFor();
-     else await page.getByRole('button',{name:'Predict Your Flight',exact:true}).waitFor();
+     else await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
     }
-    for(const name of ['Predict Your Flight','Explore Analytics']){
+    for(const name of ['Predict Flight','View Analytics']){
      const button=page.getByRole('button',{name,exact:true});
      await button.hover();
      await page.waitForTimeout(220);
