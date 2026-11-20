@@ -286,6 +286,7 @@ def analysis_dashboard():
     except (OSError, ValueError, KeyError) as exc:
         st.error(f'Analysis data could not be loaded: {exc}. Include both files from data/analysis in the application.')
         return
+    st.caption(f"Historical {metadata['date_min'][:4]} US flights · Not live flight status.")
     # Render the filtered KPI cards above all collapsed controls and analyses.
     kpi_container = st.container(key='analysis_kpis')
     with st.container(border=True, key='analysis_filters'):

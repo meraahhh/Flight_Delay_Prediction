@@ -111,7 +111,7 @@ Source and output locations can be overridden with `--source` and `--output`. Th
 python -B -m unittest discover -s tests -v
 ```
 
-Tests check artifact integrity, monthly reconciliation, weighted calculations, empty selections, combined filters, minimum thresholds, reset behavior, Home buttons, navigation, filter persistence, About metrics, Monday/Sunday predictions against the saved pipeline, unchanged model bytes, and startup/prediction/analysis from a temporary deployment copy containing no original CSVs.
+Tests check artifact integrity, monthly reconciliation, weighted calculations, empty selections, every combined filter control, all six summary-table groupings, minimum thresholds, reset behavior, Home buttons, navigation, filter persistence, About metrics against the saved final-test confusion matrix, Monday/Sunday predictions against the saved pipeline, unchanged model bytes, and startup/prediction/analysis from a temporary deployment copy containing no original CSVs.
 
 ## Project structure
 
@@ -137,7 +137,7 @@ Aviation Signature uses an original premium aviation identity: deep navy `#14253
 
 `assets/aviation-hero.jpg` is a 1920 × 1440 photograph credited to Pixabay on Pexels, used under the [Pexels License](https://www.pexels.com/license/). Source, download details, and usage notes are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Visible credit appears beside the hero image. The image is read from local bytes and embedded, so Streamlit Cloud does not need a remote image request. Include the entire `assets/` directory when deploying. No AI-generated hero imagery is used.
 
-Browser regression scripts cover header contrast and desktop/mobile navigation (`tests/browser_header.cjs`), all-month and January chart rendering (`tests/browser_analysis.cjs`), and complete website workflows, offline image loading, prediction results, About metrics, and downloads (`tests/browser_website.cjs`). They use Playwright as a separate development tool; it is not needed in Streamlit Cloud runtime dependencies.
+Browser regression scripts cover header contrast and desktop/mobile navigation (`tests/browser_header.cjs`), all-month and January chart rendering (`tests/browser_analysis.cjs`), and complete website workflows, offline image loading, prediction results, About metrics, and downloads (`tests/browser_website.cjs`). `tests/browser_quality.cjs` additionally checks all four pages at desktop, tablet, and mobile widths, including clipping, toolbar overlap, and visible historical/non-live notices. Run browser scripts sequentially. They use Playwright as a separate development tool; it is not needed in Streamlit Cloud runtime dependencies.
 
 ### Airport display names
 

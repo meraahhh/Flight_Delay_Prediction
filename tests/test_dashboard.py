@@ -2,6 +2,7 @@
 from datetime import date, time
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 import sys
@@ -67,6 +68,23 @@ class DashboardTests(unittest.TestCase):
                 expected = (self.metadata['monthly_totals']['1']['flights'] if months == [1]
                             else self.metadata['totals']['flights'])
                 self.assertEqual(app.metric[0].value, f'{expected:,}')
+
+    def test_displayed_metrics_match_saved_final_test_results(self):
+        notebook = json.loads((ROOT / 'notebooks/02_full_data_analysis.ipynb').read_text())
+        outputs = [''.join(output.get('text', [])) for cell in notebook['cells']
+                   for output in cell.get('outputs', [])]
+        report = next(text for text in outputs if 'Random Forest - Final Test Results' in text)
+        matrix = re.search(r'\[\[\s*(\d+)\s+(\d+)\s*\]\s*\[\s*(\d+)\s+(\d+)\s*\]\]', report)
+        self.assertIsNotNone(matrix)
+        tn, fp, fn, tp = map(int, matrix.groups())
+        expected = {'Accuracy': f'{100 * (tn + tp) / (tn + fp + fn + tp):.2f}%',
+                    'Precision': f'{100 * tp / (tp + fp):.2f}%',
+                    'Recall': f'{100 * tp / (tp + fn):.2f}%',
+                    'F1-Score': f'{100 * 2 * tp / (2 * tp + fp + fn):.2f}%'}
+        app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
+        app.radio[0].set_value('About').run()
+        self.assertFalse(app.exception)
+        self.assertEqual({m.label: m.value for m in app.metric}, expected)
 
     def test_home_is_photo_led_and_minimal(self):
         app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
@@ -177,6 +195,32 @@ class DashboardTests(unittest.TestCase):
         next(b for b in app.button if b.label == 'Reset filters').click().run()
         self.assertFalse(app.exception)
         self.assertEqual(app.metric[0].value, f"{self.metadata['totals']['flights']:,}")
+
+    def test_combined_analytics_controls_and_all_summary_tables(self):
+        app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
+        app.radio[0].set_value('Flight Analytics').run()
+        for key, values in {'analysis_months': [1, 7], 'analysis_airlines': ['AA'],
+                            'analysis_origins': ['DFW'], 'analysis_destinations': ['LAX'],
+                            'analysis_days': [1, 5]}.items():
+            app.multiselect(key=key).set_value(values)
+        app.slider(key='analysis_hours').set_value((14, 20)).run()
+        self.assertFalse(app.exception)
+        data = self.data
+        selected = data[data.month.isin([1, 7]) & (data.op_unique_carrier == 'AA')
+                        & (data.origin == 'DFW') & (data.dest == 'LAX')
+                        & data.day_of_week.isin([1, 5]) & data.departure_hour.between(14, 20)]
+        self.assertGreater(selected.flights.sum(), 0)
+        self.assertEqual(app.metric[0].value, f'{int(selected.flights.sum()):,}')
+        self.assertEqual(app.metric[1].value, f'{int(selected.delayed_flights.sum()):,}')
+        for dimension in ['month', 'op_unique_carrier', 'origin', 'dest', 'day_of_week', 'departure_hour']:
+            app.selectbox[0].set_value(dimension).run()
+            self.assertFalse(app.exception)
+            table = app.dataframe[0].value
+            self.assertEqual(int(table.flights.sum()), int(selected.flights.sum()))
+            self.assertEqual(int(table.delayed_flights.sum()), int(selected.delayed_flights.sum()))
+            self.assertTrue((table.delay_rate_pct == 100 * table.delayed_flights / table.flights).all())
+        self.assertTrue(any('Historical 2024 US flights' in c.value and 'Not live flight status' in c.value
+                            for c in app.caption))
 
     def test_home_navigation_about_and_filter_persistence(self):
         app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
