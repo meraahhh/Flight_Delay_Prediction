@@ -9,7 +9,7 @@ pip install -r requirements.txt
 streamlit run app/app.py
 ```
 
-Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Flight” and “View Analytics” buttons. Analytics opens with four KPI cards. Filters, each of the seven charts, insights, the summary table, and data notes are in separate sections, all collapsed by default. Open a section to inspect it and click its title again to collapse it. Filter selections persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
+Use the horizontal navigation to visit **Home**, **Flight Prediction**, **Flight Analytics**, and **About**. Home includes working “Predict Flight” and “View Analytics” buttons. Analytics opens with four KPI cards. An accessible filter panel sits immediately below the KPIs. Four groups—Monthly & Time Analysis, Airline Performance, Airport Performance, and Detailed Data—start collapsed. They contain all seven charts, insights, the summary table, data notes, and existing downloads. Charts use a two-column layout on desktop and stack on mobile. Open a section to inspect it and click its title again to collapse it. Filter selections persist when navigating between sections. About explains the model and its unchanged evaluation metrics. The application works without the large original CSV or ZIP files.
 
 ## Prediction Dashboard
 

@@ -42,26 +42,28 @@ async function downloadText(download) {
     // Wait for Streamlit to remove the previous About section's metric nodes.
     await page.waitForFunction(()=>document.querySelectorAll('[data-testid="stMetric"]').length===4);
     assert.equal(await page.locator('[data-testid="stExpander"] details[open]').count(),0);
+    assert.equal(await page.getByTestId('stExpander').count(),4);
+    await page.getByTestId('stMultiSelect').filter({hasText:'Months'}).getByRole('combobox').waitFor({state:'visible'});
     assert.equal(await page.locator('[data-testid="stMetric"]:visible').count(),4);
     assert.equal(await page.locator('[data-testid="stDataFrame"]:visible').count(),0);
     assert(await page.evaluate(()=>{
      const kpis=document.querySelector('.st-key-analysis_kpis').getBoundingClientRect();
-     const filters=document.querySelector('[data-testid="stExpander"]').getBoundingClientRect();
+     const filters=document.querySelector('.st-key-analysis_filters').getBoundingClientRect();
      return kpis.bottom<=filters.top;
-    }), 'KPI cards must appear above the collapsed filters');
+    }), 'KPI cards must appear above the visible filters');
     await verifyChartSections(page);
     assert.equal(await page.getByTestId('stVegaLiteChart').count(),7);
     assert.equal(await page.getByTestId('stMetricValue').first().innerText(),'6,982,766');
     await page.screenshot({path:`/tmp/airline-analytics-${name}-${width}.png`,fullPage:true});
-    await page.getByText('Summary table',{exact:true}).click();
+    await page.getByText('Detailed Data',{exact:true}).click();
     await page.waitForLoadState('networkidle');
     let ready=page.waitForEvent('download');
     await page.getByRole('button',{name:'Download filtered summary (CSV)',exact:true}).click();
     const csv=await downloadText(await ready);
     assert(csv.includes('delay_rate_pct')&&csv.includes('526882'));
-    await page.getByText('Summary table',{exact:true}).click();
+    await page.getByText('Detailed Data',{exact:true}).click();
     await page.getByTestId('stDataFrame').waitFor({state:'hidden'});
-    await page.getByText('Data notes',{exact:true}).click();
+    await page.getByText('Detailed Data',{exact:true}).click();
     await page.waitForLoadState('networkidle');
     ready=page.waitForEvent('download');
     await page.getByRole('button',{name:'Download data metadata (JSON)',exact:true}).click();

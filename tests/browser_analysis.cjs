@@ -29,10 +29,9 @@ const {verifyChartSections} = require('./browser_helpers.cjs');
         assert.equal(await charts.count(), 7);
         assert.equal(await page.getByTestId('stException').count(), 0);
         assert.deepEqual(errors, [], `${name} ${label}: browser errors`);
-        console.log(`${name} ${label}: 7 charts expand/collapse individually, correct flight count, no browser errors`);
+        console.log(`${name} ${label}: 7 charts expand/collapse in 3 groups, correct flight count, no browser errors`);
       }
       await verify('all months', '6,982,766');
-      await page.getByText('Filters', {exact:true}).click();
       const months = page.getByTestId('stMultiSelect').filter({ hasText: 'Months' });
       const input = months.getByRole('combobox');
       await input.focus();
