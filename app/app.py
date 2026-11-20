@@ -64,14 +64,17 @@ div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind
 .st-key-site_navigation [data-testid="stRadioOption"] > div > div:first-child:not([data-testid="stMarkdownContainer"]) {display:none;}
 .st-key-site_navigation [role="radiogroup"] label:focus-within {outline:2px solid #922F48; outline-offset:2px;}
 .st-key-home_hero {background:#FFFFFF; border:1px solid #E5DDD3; border-radius:22px;
- padding:1.7rem; margin:.4rem 0; box-shadow:0 12px 36px #14253D0C;}
+ padding:1.2rem; margin:.4rem 0; box-shadow:0 12px 36px #14253D0C;}
+.st-key-home_hero .hero-photo img {height:clamp(300px,32vw,410px); object-position:center 25%;}
+.st-key-home_actions {align-items:center; justify-content:center;}
+.st-key-home_actions button {min-width:12rem;}
 .st-key-home_hero .eyebrow {color:#922F48; text-transform:uppercase; letter-spacing:.13em;
  font-size:.7rem; font-weight:650; margin-bottom:.8rem; display:flex; align-items:center; gap:.5rem;}
 .st-key-home_hero .eyebrow::before {content:''; width:20px; height:2px; background:#C5A47E;}
-.st-key-home_hero h1.hero-title {font-family:Georgia,"Times New Roman",serif; font-size:clamp(1.9rem,3.3vw,2.8rem); font-weight:500; line-height:1.15;
- color:#14253D; letter-spacing:-.035em; margin:.3rem 0 1rem;}
+.st-key-home_hero h1.hero-title {font-family:Georgia,"Times New Roman",serif; text-align:center; font-size:clamp(1.8rem,3vw,2.5rem); font-weight:500; line-height:1.15;
+ color:#14253D; letter-spacing:-.035em; margin:.25rem 0 .4rem;}
 .st-key-home_hero .hero-title .hero-accent {color:#922F48;}
-.st-key-home_hero .hero-copy {max-width:29rem; color:#514F55; font-size:.97rem; margin-bottom:.8rem;}
+.st-key-home_hero .hero-copy {text-align:center; color:#514F55; font-size:.97rem; margin:.35rem 0 .6rem;}
 .st-key-home_hero [data-testid="stCaptionContainer"] p {color:#615B60; font-size:.77rem;}
 .hero-photo {position:relative; margin:0; border-radius:16px; overflow:hidden; background:#E5DDD3;}
 .hero-photo::after {content:""; position:absolute; inset:0; background:rgba(20,37,61,.16); pointer-events:none;}
@@ -115,7 +118,9 @@ div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind
  .st-key-site_navigation [role="radiogroup"] {justify-content:flex-start; gap:0;}
  .st-key-site_navigation [role="radiogroup"] label {padding:.5rem .55rem;}
  .st-key-site_navigation [role="radiogroup"] p {font-size:.8rem;}
- .st-key-home_hero {padding:1rem;}
+ .st-key-home_hero {padding:.85rem;}
+ .st-key-home_hero .hero-photo img {height:240px;}
+ .st-key-home_actions [data-testid="stButton"], .st-key-home_actions button {width:100%;}
  .hero-photo img {height:270px;}
  .hero-photo .photo-badge {display:none;}
  .hero-photo figcaption {left:10px; right:10px; bottom:10px; padding:.65rem;}
@@ -411,22 +416,13 @@ def hero_image_uri():
 
 def home_section():
     with st.container(key='home_hero'):
-        intro, visual = st.columns([1, 1.14], gap='large', vertical_alignment='center')
-        with intro:
-            st.html('<h1 class="hero-title">Fly Smarter.<br><span class="hero-accent">Travel with Confidence.</span></h1><p class="hero-copy">Predict your flight delay risk with ease.</p>')
-            predict, explore = st.columns(2)
-            predict.button('Predict Flight', type='primary', on_click=navigate,
-                           args=('Flight Prediction',), width='stretch', icon=':material/flight_takeoff:')
-            explore.button('View Analytics', on_click=navigate,
-                           args=('Flight Analytics',), width='stretch', icon=':material/monitoring:')
-        with visual:
-            st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
-    for col, accent, title, copy in zip(st.columns(2, gap='medium'), ['', 'burgundy'],
-            ['Flight Prediction', 'Flight Analytics'],
-            ['Enter your flight details and check your delay risk.',
-             'Explore flight delays by airline, airport, and month.']):
-        with col:
-            st.html(f'<article class="feature-card {accent}"><h3>{title}</h3><p>{copy}</p></article>')
+        st.html(f'''<figure class="hero-photo"><img src="{hero_image_uri()}" alt="Passenger jet in flight against blue sky and sunlit clouds" width="1920" height="1440" fetchpriority="high"></figure><div class="asset-credit">Photo: <a href="https://www.pexels.com/photo/white-and-red-plane-beside-clouds-low-angle-photography-46148/" target="_blank" rel="noopener noreferrer">Pixabay / Pexels</a></div>''')
+        st.html('<h1 class="hero-title">Fly Smarter. <span class="hero-accent">Travel with Confidence.</span></h1><p class="hero-copy">Predict flight delays and explore travel trends.</p>')
+        with st.container(key='home_actions', horizontal=True, horizontal_alignment='center', gap='small'):
+            st.button('Predict Flight', type='primary', on_click=navigate,
+                      args=('Flight Prediction',), icon=':material/flight_takeoff:')
+            st.button('View Analytics', on_click=navigate,
+                      args=('Flight Analytics',), icon=':material/monitoring:')
 
 
 with st.container(key='site_navigation'):

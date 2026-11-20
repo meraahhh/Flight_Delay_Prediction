@@ -68,6 +68,16 @@ class DashboardTests(unittest.TestCase):
                             else self.metadata['totals']['flights'])
                 self.assertEqual(app.metric[0].value, f'{expected:,}')
 
+    def test_home_is_photo_led_and_minimal(self):
+        app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
+        self.assertFalse(app.exception)
+        self.assertEqual([button.label for button in app.button], ['Predict Flight', 'View Analytics'])
+        html = '\n'.join(item.proto.body for item in app.get('html'))
+        self.assertEqual(html.count('class="hero-title"'), 1)
+        self.assertIn('Predict flight delays and explore travel trends.', html)
+        self.assertIn('data:image/jpeg;base64,', html)
+        self.assertNotIn('feature-card', html)
+
     def test_about_is_compact_and_metrics_are_unchanged(self):
         app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
         app.radio[0].set_value('About').run()

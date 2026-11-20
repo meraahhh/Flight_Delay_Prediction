@@ -22,6 +22,10 @@ async function downloadText(download) {
     await page.locator('.hero-photo img').waitFor();
     assert(await page.locator('.hero-photo img').evaluate(img=>img.complete&&img.naturalWidth===1920));
     assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '),'Fly Smarter. Travel with Confidence.');
+    assert.equal(await page.locator('.hero-copy').innerText(),'Predict flight delays and explore travel trends.');
+    assert.equal(await page.locator('.feature-card').count(),0);
+    assert.equal(await page.locator('.st-key-home_hero button').count(),2);
+    assert.equal(await page.locator('.site-footer').innerText(),'AVIATION SIGNATURE');
     await page.screenshot({path:`/tmp/airline-home-${name}-${width}.png`,fullPage:true});
     await page.getByRole('button',{name:'Predict Flight',exact:true}).click();
     const submit=page.getByRole('button',{name:'Predict Flight Delay',exact:true});

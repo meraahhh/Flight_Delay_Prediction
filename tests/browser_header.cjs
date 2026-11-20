@@ -16,6 +16,10 @@ const {webkit, chromium} = require('playwright');
     await page.locator('.st-key-site_navigation [role="radiogroup"] label').first().waitFor();
     await page.locator('.hero-title').waitFor();
     assert.equal((await page.locator('.hero-title').innerText()).replace(/\s+/g,' '), 'Fly Smarter. Travel with Confidence.');
+    assert.equal(await page.locator('.hero-copy').innerText(),'Predict flight delays and explore travel trends.');
+    assert.equal(await page.locator('.feature-card').count(),0);
+    assert.equal(await page.locator('.st-key-home_hero button').count(),2);
+    assert.equal(await page.locator('.site-footer').innerText(),'AVIATION SIGNATURE');
     assert(await page.locator('.hero-photo img').evaluate(img=>img.complete&&img.naturalWidth===1920&&img.src.startsWith('data:image/jpeg;base64,'))); 
     const result = await page.evaluate(() => {
      const rgb = color => color.match(/[\d.]+/g).slice(0,3).map(Number);
