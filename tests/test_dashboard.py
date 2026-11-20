@@ -16,6 +16,7 @@ from streamlit.testing.v1 import AppTest
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'app'))
 from dashboard_data import filter_data, summarize, totals
+from airport_labels import airport_label, load_airport_names
 
 
 class DashboardTests(unittest.TestCase):
@@ -67,6 +68,27 @@ class DashboardTests(unittest.TestCase):
                             else self.metadata['totals']['flights'])
                 self.assertEqual(app.metric[0].value, f'{expected:,}')
 
+    def test_airport_labels_preserve_codes_and_fallback(self):
+        names = load_airport_names(ROOT / 'assets/airport_names.json')
+        model = joblib.load(ROOT / 'models/flight_delay_rf_model_updated.pkl')
+        encoder = model.named_steps['preprocessing'].named_transformers_['categorical'].named_steps['encoder']
+        codes = set(encoder.categories_[1]) | set(encoder.categories_[2])
+        self.assertEqual(set(names), codes)
+        self.assertEqual(airport_label('JFK', names), 'JFK — John F. Kennedy International Airport')
+        self.assertEqual(airport_label('XYZ', names), 'XYZ')
+        self.assertEqual(load_airport_names(ROOT / 'assets/nonexistent.json'), {})
+        app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
+        next(b for b in app.button if b.label == 'Predict Flight').click().run()
+        airports = [box for box in app.selectbox if box.label in ['Departure Airport', 'Destination Airport']]
+        for box in airports:
+            self.assertIn(box.value, codes)
+            self.assertIn(airport_label(box.value, names), box.options)
+        self.assertEqual(len(app.date_input), 1)
+        self.assertEqual(len(app.time_input), 1)
+        self.assertEqual(len(app.number_input), 1)
+        self.assertEqual(len(app.selectbox), 3)
+        self.assertTrue(any('not live flight status' in caption.value for caption in app.caption))
+
     def test_model_unchanged_and_prediction_matches_pipeline(self):
         model_path = ROOT / 'models/flight_delay_rf_model_updated.pkl'
         self.assertEqual(hashlib.sha256(model_path.read_bytes()).hexdigest(),
@@ -88,9 +110,9 @@ class DashboardTests(unittest.TestCase):
             app.button[0].click().run()
             self.assertFalse(app.exception)
             cards = {m.label: m.value for m in app.metric}
-            self.assertEqual(cards['Estimated delay probability'], f'{expected:.1%}')
-            self.assertEqual(cards['Predicted status'], 'Delayed' if expected >= .5 else 'On Time')
-            self.assertEqual(cards['Risk level'], 'High' if expected >= .7 else 'Moderate' if expected >= .4 else 'Low')
+            self.assertEqual(cards['Delay Probability'], f'{expected:.1%}')
+            self.assertEqual(cards['Predicted Status'], 'Delayed' if expected >= .5 else 'On Time')
+            self.assertEqual(cards['Risk Level'], 'High' if expected >= .7 else 'Moderate' if expected >= .4 else 'Low')
         origin = next(b.value for b in app.selectbox if b.label == 'Departure Airport')
         next(b for b in app.selectbox if b.label == 'Destination Airport').set_value(origin)
         app.button[0].click().run()
@@ -171,7 +193,7 @@ class DashboardTests(unittest.TestCase):
             next(b for b in app.button if b.label == 'Predict Flight').click().run()
             app.button[0].click().run()
             self.assertFalse(app.exception)
-            self.assertTrue(any(m.label == 'Estimated delay probability' for m in app.metric))
+            self.assertTrue(any(m.label == 'Delay Probability' for m in app.metric))
             app.radio[0].set_value('Flight Analytics').run()
             self.assertFalse(app.exception)
             self.assertEqual(app.metric[0].value, f"{self.metadata['totals']['flights']:,}")

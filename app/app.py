@@ -10,6 +10,7 @@ import pandas as pd
 import streamlit as st
 
 from dashboard_data import filter_data, summarize, totals
+from airport_labels import airport_label, load_airport_names
 
 ROOT = Path(__file__).resolve().parents[1]
 HERO_PATH = ROOT / 'assets/aviation-hero.jpg'
@@ -90,6 +91,7 @@ div.stButton > button[kind="primary"]:hover,div.stFormSubmitButton > button[kind
 .booking-strip .booking-title {font-size:1.05rem; font-weight:650;}
 .booking-strip small {display:block; color:#615B60; font-size:.77rem; margin-top:.2rem;}
 .booking-strip .ticket-label {background:#F5F0E9; color:#76233A; padding:.35rem .75rem; border-radius:20px; font-size:.73rem;}
+.st-key-prediction_note [data-testid="stCaptionContainer"] p {color:#615B60;}
 .st-key-prediction_results [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
 .st-key-prediction_results [data-testid="stColumn"]:last-child [data-testid="stMetric"] {border-top-color:#C5A47E; background:#F5F0E9;}
 .st-key-analysis_kpis [data-testid="stColumn"]:nth-child(1) [data-testid="stMetric"] {border-top:3px solid #922F48; background:#FFFFFF;}
@@ -145,8 +147,6 @@ def load_analysis():
 
 def prediction_dashboard():
     st.subheader('Flight Prediction')
-    st.write('Enter your flight details and check your delay risk.')
-    st.caption('Trained on 2024 US flights. Future-date predictions are estimates; this is not live flight status.')
     try:
         model = load_model()
     except (OSError, ValueError) as exc:
@@ -154,27 +154,28 @@ def prediction_dashboard():
         return
     encoder = model.named_steps['preprocessing'].named_transformers_['categorical'].named_steps['encoder']
     airline_codes, origin_codes, destination_codes = [sorted(c.tolist()) for c in encoder.categories_]
+    airport_names = load_airport_names(ROOT / 'assets/airport_names.json')
     with st.form('flight_information'):
-        st.html('<div class="booking-strip"><div><span class="booking-title">Your flight, thoughtfully planned</span><small>Departure details · All fields required</small></div><span class="ticket-label">Flight estimate</span></div>')
-        st.caption('01 / DEPARTURE & ARRIVAL')
-        left, right = st.columns(2, gap='medium')
-        with left:
-            origin = st.selectbox('Departure Airport', origin_codes, index=1)
-        with right:
-            destination = st.selectbox('Destination Airport', destination_codes, index=2)
-        st.caption('02 / YOUR FLIGHT DETAILS')
-        left, right = st.columns(2, gap='medium')
-        with left:
+        departure, arrival = st.columns(2, gap='medium')
+        with departure:
+            origin = st.selectbox('Departure Airport', origin_codes, index=1,
+                                  format_func=lambda code: airport_label(code, airport_names),
+                                  help='Choose a valid direct route. Codes match the model’s 2024 airport categories.')
+        with arrival:
+            destination = st.selectbox('Destination Airport', destination_codes, index=2,
+                                       format_func=lambda code: airport_label(code, airport_names))
+        date_col, airline_col, time_col, distance_col = st.columns(4, gap='medium')
+        with date_col:
             flight_date = st.date_input('Flight Date')
-        with right:
+        with airline_col:
             airline = st.selectbox('Airline', airline_codes,
                                    index=airline_codes.index('AA') if 'AA' in airline_codes else 0)
-        left, right = st.columns(2, gap='medium')
-        with left:
-            flight_time = st.time_input('Scheduled Departure Time', value=time(12, 0))
-        with right:
-            distance = st.number_input('Flight Distance (miles)', min_value=1.0, value=500.0)
-        st.caption('Use local scheduled departure time. Select a valid direct route and its distance; not all airport combinations have direct service.')
+        with time_col:
+            flight_time = st.time_input('Scheduled Departure Time', value=time(12, 0),
+                                        help='Local scheduled departure time.')
+        with distance_col:
+            distance = st.number_input('Flight Distance (miles)', min_value=1.0, value=500.0,
+                                        help='Enter the distance of your direct route in miles.')
         submitted = st.form_submit_button('Predict Flight Delay', type='primary', icon=':material/flight_takeoff:', width='stretch')
     if submitted:
         if origin == destination:
@@ -191,16 +192,14 @@ def prediction_dashboard():
             probability = float(model.predict_proba(flight_data)[0][1])
             prediction = int(probability >= 0.50)
             risk = 'High' if probability >= 0.70 else 'Moderate' if probability >= 0.40 else 'Low'
-            st.subheader('Prediction overview')
-            st.caption(f'{origin} → {destination} · {airline} · {flight_date:%d %b %Y} · {flight_time:%H:%M}')
             with st.container(key='prediction_results'):
                 a, b, c = st.columns(3)
-                a.metric('Predicted status', 'Delayed' if prediction == 1 else 'On Time')
-                b.metric('Estimated delay probability', f'{probability:.1%}')
-                c.metric('Risk level', risk)
-            st.progress(probability, text='Estimated probability of a departure delay ≥15 minutes')
-            st.caption('Classification uses a 50% threshold. Risk: Low <40%, Moderate 40–<70%, High ≥70%. “On Time” includes departures less than 15 minutes late. This estimate is not a guaranteed flight status.')
-    st.caption('Visit About for the model methodology, evaluation metrics, and limitations.')
+                a.metric('Predicted Status', 'Delayed' if prediction == 1 else 'On Time',
+                         help='Delayed means departure is at least 15 minutes late. The classification threshold is 50%.')
+                b.metric('Delay Probability', f'{probability:.1%}')
+                c.metric('Risk Level', risk, help='Low <40%; Moderate 40–<70%; High ≥70%.')
+    with st.container(key='prediction_note'):
+        st.caption('Predictions are estimates based on 2024 historical data, not live flight status.')
 
 
 def about_section():

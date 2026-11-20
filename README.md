@@ -138,3 +138,9 @@ Aviation Signature uses an original premium aviation identity: deep navy `#14253
 `assets/aviation-hero.jpg` is a 1920 × 1440 photograph credited to Pixabay on Pexels, used under the [Pexels License](https://www.pexels.com/license/). Source, download details, and usage notes are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Visible credit appears beside the hero image. The image is read from local bytes and embedded, so Streamlit Cloud does not need a remote image request. Include the entire `assets/` directory when deploying. No AI-generated hero imagery is used.
 
 Browser regression scripts cover header contrast and desktop/mobile navigation (`tests/browser_header.cjs`), all-month and January chart rendering (`tests/browser_analysis.cjs`), and complete website workflows, offline image loading, prediction results, About metrics, and downloads (`tests/browser_website.cjs`). They use Playwright as a separate development tool; it is not needed in Streamlit Cloud runtime dependencies.
+
+### Airport display names
+
+The Prediction page shows `IATA — Airport name` using the locally bundled `assets/airport_names.json` display reference, derived from [OurAirports](https://github.com/davidmegginson/ourairports-data) (public domain). Only unique active US/territory airport matches are included. PBI uses its verified historical name because it is the category used by the 2024 model; its code is never replaced with a newer identifier. The reference records its retrieval date, source hash, selection rules, license, and historical-code source. Unavailable names fall back to the original code. No external lookup is required at runtime. This display reference does not alter the model or the flight datasets.
+
+The compact Prediction form retains all six inputs. Results use three cards—Predicted Status, Delay Probability, and Risk Level—with one visible historical-estimate note. Threshold details are available through card help icons and About.
