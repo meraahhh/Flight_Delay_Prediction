@@ -51,7 +51,7 @@ const {webkit, chromium} = require('playwright');
     const nav=page.locator('.st-key-site_navigation');
     for(const section of ['About','Flight Prediction','Flight Analytics','Home']){
      await nav.getByText(section,{exact:true}).click(); // No force; fails if covered.
-     if(section!=='Home') await page.getByRole('heading',{name:section==='About'?'About the system':section,exact:true}).waitFor();
+     if(section!=='Home') await page.getByRole('heading',{name:section==='About'?'About Aviation Signature':section,exact:true}).waitFor();
      else await page.getByRole('button',{name:'Predict Flight',exact:true}).waitFor();
     }
     for(const name of ['Predict Flight','View Analytics']){

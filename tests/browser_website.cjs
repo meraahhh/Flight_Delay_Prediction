@@ -56,7 +56,12 @@ async function downloadText(download) {
     assert.equal(await page.getByTestId('stException').count(),0);
     const nav=page.locator('.st-key-site_navigation');
     await nav.getByText('About',{exact:true}).click();
-    await page.getByRole('heading',{name:'About the system',exact:true}).waitFor();
+    await page.getByRole('heading',{name:'About Aviation Signature',exact:true}).waitFor();
+    for(const title of ['How It Works','Model Performance','Data & Limitations']) await page.getByRole('heading',{name:title,exact:true}).waitFor();
+    const aboutText=await page.getByTestId('stMain').innerText();
+    assert(aboutText.includes('Aviation Signature uses machine learning and historical flight data to estimate departure delay risk.'));
+    assert(!/university|student|coursework/i.test(aboutText));
+    assert(aboutText.includes('not live flight status'));
     assert.deepEqual(await page.getByTestId('stMetricValue').allTextContents(),['72.56%','27.04%','37.89%','31.56%']);
     await nav.getByText('Flight Analytics',{exact:true}).click();
     await page.getByTestId('stMetricValue').first().filter({hasText:'6,982,766'}).waitFor();

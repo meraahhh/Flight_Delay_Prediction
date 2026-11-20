@@ -203,21 +203,20 @@ def prediction_dashboard():
 
 
 def about_section():
-    st.subheader('About the system')
-    st.html('<div class="editorial-intro"><strong>Aviation Signature</strong>A considered approach to flight intelligence. Designed to make historical patterns understandable and model estimates transparent.</div>')
-    st.write('A university Data Science project connecting machine learning with a clear view of historical aviation patterns.')
-    st.markdown('#### The prediction model')
-    st.write('The saved pipeline fills missing values, one-hot encodes airline and airport codes, and uses a Random Forest to estimate departure delay risk from eight calendar, route, schedule, and distance features.')
-    st.write('Random Forest · 150 trees · Evaluated on 106,105 flights from October–December 2024.')
-    for col, label, value in zip(st.columns(4), ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
-                                  ['72.56%', '27.04%', '37.89%', '31.56%']):
-        col.metric(label, value)
-    st.caption('These are the existing final test metrics. The model was not retrained. Weekday inputs now match training: Monday=1 through Sunday=7.')
-    st.markdown('#### What the results mean')
-    st.write('A delayed departure is at least 15 minutes late. The prediction threshold is 50%; risk levels are Low below 40%, Moderate from 40% to below 70%, and High from 70%.')
-    st.markdown('#### Historical analysis, transparent calculations')
-    st.write('Analytics uses the full cleaned 2024 US dataset. Cancelled flights and records without a known departure delay are excluded; diverted flights remain included. Filtered rates divide summed delayed-flight counts by summed flight counts.')
-    st.info('This system does not provide live flight tracking or official flight status. Future-date estimates may be less reliable, and historical associations do not establish causes.')
+    st.subheader('About Aviation Signature')
+    st.write('Aviation Signature uses machine learning and historical flight data to estimate departure delay risk.')
+    with st.container(border=True):
+        st.markdown('#### How It Works')
+        st.write('Enter your airports, date, airline, scheduled departure time, and distance. The Random Forest model estimates the probability of a departure delay of at least 15 minutes and returns a predicted status and risk level.')
+    with st.container(border=True):
+        st.markdown('#### Model Performance')
+        st.caption('Evaluated on 106,105 flights from October–December 2024.')
+        for col, label, value in zip(st.columns(4), ['Accuracy', 'Precision', 'Recall', 'F1-Score'],
+                                      ['72.56%', '27.04%', '37.89%', '31.56%']):
+            col.metric(label, value)
+    with st.container(border=True):
+        st.markdown('#### Data & Limitations')
+        st.write('The system uses historical 2024 US flight data. Predictions are estimates, not live flight status or official flight information. Future flight patterns may differ from the training data, making estimates less reliable.')
 
 
 def style_chart(chart, height):

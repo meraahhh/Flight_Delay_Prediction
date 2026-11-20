@@ -68,6 +68,21 @@ class DashboardTests(unittest.TestCase):
                             else self.metadata['totals']['flights'])
                 self.assertEqual(app.metric[0].value, f'{expected:,}')
 
+    def test_about_is_compact_and_metrics_are_unchanged(self):
+        app = AppTest.from_file(str(ROOT / 'app/app.py'), default_timeout=30).run()
+        app.radio[0].set_value('About').run()
+        self.assertFalse(app.exception)
+        self.assertEqual([h.value for h in app.subheader], ['About Aviation Signature'])
+        text = '\n'.join(item.value for item in app.markdown)
+        self.assertIn('Aviation Signature uses machine learning and historical flight data to estimate departure delay risk.', text)
+        for title in ['How It Works', 'Model Performance', 'Data & Limitations']:
+            self.assertIn('#### ' + title, text)
+        self.assertNotRegex(text.lower(), r'university|student|coursework')
+        self.assertIn('historical 2024 US flight data', text)
+        self.assertIn('not live flight status', text)
+        self.assertEqual({m.label: m.value for m in app.metric}, {
+            'Accuracy': '72.56%', 'Precision': '27.04%', 'Recall': '37.89%', 'F1-Score': '31.56%'})
+
     def test_airport_labels_preserve_codes_and_fallback(self):
         names = load_airport_names(ROOT / 'assets/airport_names.json')
         model = joblib.load(ROOT / 'models/flight_delay_rf_model_updated.pkl')
