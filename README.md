@@ -70,8 +70,10 @@ Flight_Delay_Prediction/
 │   ├── 01_data_understanding.ipynb
 │   └── 02_full_data_analysis.ipynb
 ├── scripts/
+│   ├── clean_data.py
 │   └── prepare_analysis.py
 └── tests/
+    ├── test_clean_data.py
     ├── test_dashboard.py
     ├── browser_helpers.cjs
     ├── browser_header.cjs
@@ -85,6 +87,7 @@ Flight_Delay_Prediction/
 | `app/app.py` | Four-page navigation, booking-style prediction form, charts, downloads, and interface styling |
 | `app/dashboard_data.py` | Filtering, summed aggregation, weighted rates, and totals |
 | `app/airport_labels.py` | Airport display-name lookup with code-only fallback |
+| `scripts/clean_data.py` | Standalone notebook-equivalent cleaning with explicit paths, count/missing-value reporting, and overwrite protection |
 | `scripts/prepare_analysis.py` | Chunked validation, full-data aggregation, Parquet generation, metadata, and optional raw-ZIP reconciliation |
 | `models/flight_delay_rf_model_updated.pkl` | Deployed fitted preprocessing and Random Forest pipeline |
 | `notebooks/01_data_understanding.ipynb` | Exploration of a 10,000-row sample |
@@ -159,7 +162,7 @@ Metadata records source/artifact SHA-256 hashes, sizes, cleaning rules, date ran
 
 ## 5. Data Cleaning
 
-`notebooks/02_full_data_analysis.ipynb` implements the following workflow (cell numbers below are **zero-based**, matching the notebook's JSON order):
+`scripts/clean_data.py` reproduces the filtering and target creation in `notebooks/02_full_data_analysis.ipynb`. The original notebook implements the following workflow (cell numbers below are **zero-based**, matching the notebook's JSON order):
 
 1. **Inspect the original ZIP** in cells 0–3: count rows, inspect missing values, count cancellations/diversions, and calculate eligible records.
 2. **Read in 100,000-row chunks** in cell 4, specifying a string dtype for `cancellation_code`.
@@ -171,6 +174,28 @@ Metadata records source/artifact SHA-256 hashes, sizes, cleaning rules, date ran
 Cell 4 deletes an existing cleaned output before rebuilding it. Use a fresh output location or preserve an existing file before running that cell.
 
 The implementation does **not** establish full-dataset deduplication, outlier clipping, removal of negative delays, or comprehensive invalid-value repair. The sample notebook checks duplicates only in its sample; that is not proof that the full dataset is duplicate-free. Negative delays represent early departures and remain in analytics sums.
+
+### Standalone cleaning command
+
+From the repository root, with dependencies installed:
+
+```bash
+python scripts/clean_data.py --input data/flight_data_2024.csv.zip --output data/flight_data_cleaned_rebuilt.csv --expected-input-rows 7079081 --expected-output-rows 6982766
+```
+
+This writes a **new** CSV; it does not overwrite `data/flight_data_cleaned.csv` or any existing destination. The output parent directory must already exist. Use another unused output filename for another run. No application path or deployed artifact is changed.
+
+`--input` accepts a plain CSV or ZIP. ZIP input defaults to member `flight_data_2024.csv`; use `--zip-member` for another member. `--output` is required. Relative paths are resolved from the current working directory. `--chunksize` defaults to the notebook's 100,000 rows. The optional expected-count flags above validate the known original dataset; omit or change them only for deliberately different inputs. Run `python scripts/clean_data.py --help` for options.
+
+Only `cancelled` and `dep_delay` are required for the cleaning operation. Missing eligibility values are handled by the original predicate: missing cancellation flags do not match zero; missing departure delays are excluded. Nonnumeric eligibility values raise an error rather than being silently coerced. Other columns and missing values are preserved, with no deduplication, outlier removal, or new eligibility rules. If present, `delayed` is recomputed using the original target definition.
+
+The JSON report printed to the terminal includes input, retained, excluded, cancelled, missing-delay, and target-class counts, plus per-column missing-value counts before and after filtering. Cancelled and missing-delay counts can overlap. Count mismatches or processing errors fail the command and remove its partial output. Missing source columns, invalid numeric values, and existing output files also fail explicitly. CSV formatting can vary with pandas chunk type inference, just as in the notebook; source row order and retained values are preserved.
+
+Synthetic regression tests compare CSV and ZIP output with the notebook's chunked operations, including the 15-minute boundary, negative delays, diversions, duplicates, missing values, invalid inputs, count checks, and overwrite protection:
+
+```bash
+python -B -m unittest discover -s tests -p test_clean_data.py -v
+```
 
 ### Additional analytics validation
 
@@ -409,12 +434,14 @@ There are two distinct tasks: **running the supplied application** is directly r
 
    If the kernel already starts at the repository root, omit `os.chdir(...)`. This is required manual setup, not an existing repository script.
 
-5. **Clean the data** using notebook 02 cells 0–7, preserving any existing cleaned output first. Inspect the resulting counts against metadata. There is no standalone cleaning CLI.
+5. **Clean the data** using the standalone command in section 5, which creates `data/flight_data_cleaned_rebuilt.csv`. Inspect its count report against metadata. Existing notebooks and analytics preparation still default to `data/flight_data_cleaned.csv`: to use the new file, explicitly set the notebook's `output_path` accordingly or pass `--source data/flight_data_cleaned_rebuilt.csv` to analytics preparation. Do not rerun notebook cell 4 on that output; it would rebuild it. Notebook cells 0–7 remain the original inspection/cleaning reference.
 6. **Preprocess and train through the notebook.** Earlier cells define preprocessing, experiment pipelines, and the ignored `models/flight_delay_rf_model.pkl`. The later final workflow samples temporal partitions (cell 27), resets the final split (cell 40), clones the earlier model settings and fits the final Random Forest (cell 41), evaluates it (cell 48), and saves `models/flight_delay_rf_model_updated.pkl` (cell 52). These are notebook operations, not executable training commands supplied by a script.
 7. **Prepare full-data analytics** with the `prepare_analysis.py` command in section 10. This uses the full cleaned CSV, independently of training samples.
 8. **Run tests**, then launch Streamlit as shown below and in section 10.
 
 ### Reproduction caveats
+
+The standalone script resolves the cleaning-stage path/setup gap. Training remains notebook-based; neither cleaning nor its tests retrain the model.
 
 Some earlier saved notebook outputs reflect smaller samples than the current 6% sampling code. The final split/evaluation cells report the consistent 250,288 / 62,573 / 106,105 counts documented here. The notebook is exploratory, relies on execution state, and shares a preprocessing object in a comparison experiment. It should not be represented as an unattended, guaranteed byte-identical retraining procedure. Keep the committed model when the goal is to reproduce the deployed application's behavior.
 
