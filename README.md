@@ -19,9 +19,9 @@ Predictions are estimates based on historical data, **not live flight status**. 
 flowchart TD
     RAW[Local 2024 flight CSV inside ZIP] --> CLEAN[Notebook 02: eligibility filtering and target creation]
     CLEAN --> CSV[Local full cleaned CSV]
-    CSV --> SAMPLE[Notebook 02: sampled temporal partitions]
+    CSV --> SAMPLE[Training script: sampled temporal partitions]
     SAMPLE --> PREP[Imputation and one-hot encoding]
-    PREP --> TRAIN[Random Forest training and evaluation]
+    PREP --> TRAIN[scripts/train_model.py: Random Forest training]
     TRAIN --> MODEL[Saved joblib pipeline]
     CSV --> BUILD[scripts/prepare_analysis.py]
     RAW -. optional reconciliation .-> BUILD
@@ -34,12 +34,12 @@ flowchart TD
     CLOUD --> USER[Browser: Home, Prediction, Analytics, About]
 ```
 
-- **Offline notebooks** explore data, create the cleaned CSV, sample records, train models, and save the selected pipeline.
+- **Offline scripts** reproduce cleaning and the final Random Forest training workflow. The original notebooks retain exploration and experiment history.
 - **Analysis preparation** validates and aggregates the full cleaned data independently of model training.
 - **The application** loads the saved pipeline and compact analytics artifacts. It calculates filtered dashboard statistics at runtime.
 - **Deployment** needs the tracked runtime artifacts, not the large original datasets or notebook execution.
 
-Training is notebook-based; it is not a fully automated build pipeline. See [Reproducing the Workflow](#11-reproducing-the-workflow) for prerequisites and gaps.
+Cleaning and final Random Forest training have standalone commands; obtaining the original dataset remains manual. See [Reproducing the Workflow](#11-reproducing-the-workflow) for prerequisites and gaps.
 
 ## 3. Repository Structure
 
@@ -71,10 +71,12 @@ Flight_Delay_Prediction/
 │   └── 02_full_data_analysis.ipynb
 ├── scripts/
 │   ├── clean_data.py
-│   └── prepare_analysis.py
+│   ├── prepare_analysis.py
+│   └── train_model.py
 └── tests/
     ├── test_clean_data.py
     ├── test_dashboard.py
+    ├── test_train_model.py
     ├── browser_helpers.cjs
     ├── browser_header.cjs
     ├── browser_analysis.cjs
@@ -88,6 +90,7 @@ Flight_Delay_Prediction/
 | `app/dashboard_data.py` | Filtering, summed aggregation, weighted rates, and totals |
 | `app/airport_labels.py` | Airport display-name lookup with code-only fallback |
 | `scripts/clean_data.py` | Standalone notebook-equivalent cleaning with explicit paths, count/missing-value reporting, and overwrite protection |
+| `scripts/train_model.py` | Independent final Random Forest training with protected outputs and a split/evaluation report |
 | `scripts/prepare_analysis.py` | Chunked validation, full-data aggregation, Parquet generation, metadata, and optional raw-ZIP reconciliation |
 | `models/flight_delay_rf_model_updated.pkl` | Deployed fitted preprocessing and Random Forest pipeline |
 | `notebooks/01_data_understanding.ipynb` | Exploration of a 10,000-row sample |
@@ -409,41 +412,62 @@ The last command creates a new output directory; it is an optional example, not 
 
 ## 11. Reproducing the Workflow
 
-There are two distinct tasks: **running the supplied application** is directly reproducible from a clone; **recreating the trained artifact** requires the external dataset and manual notebook setup.
+Running the supplied application needs only a clone and the runtime dependencies. Rebuilding the model additionally requires the full cleaned 2024 CSV. No full-data training run has yet been performed with the standalone training script, so **the original evaluation metrics have not been confirmed by this script**.
 
-1. **Install the runtime** using section 9.
-2. **Obtain the input data manually.** Place the original ZIP in `data/` with the filenames described above. No download script or upstream URL is supplied. The sample exploration notebook additionally requires its ignored sample CSV; no sample-generation script is provided.
-3. **Install notebook tools separately**, if cleaning/training is required. These are development dependencies, not part of `requirements.txt`:
+1. **Install the runtime** using section 9. Training uses pandas, NumPy, scikit-learn, and joblib from the existing pinned `requirements.txt`; no additional training dependency is needed:
 
    ```bash
-   python -m pip install jupyterlab matplotlib seaborn
-   python -m jupyterlab
+   python -m pip install -r requirements.txt
    ```
 
-   Select the virtual environment's Python kernel. `01_data_understanding.ipynb` expects its sample at `../data/flight_data_2024_sample.csv` relative to the notebook working directory.
+2. **Obtain the original input manually.** No upstream URL or download script is supplied. Check its provenance, license, and recorded source hash.
+3. **Clean the data** using section 5's standalone command, producing the separate `data/flight_data_cleaned_rebuilt.csv`. Check its count report against metadata.
+4. **Train to a new model path**, from the repository root:
 
-4. **Prepare notebook 02's working directory and input variable.** Its saved code uses root-relative `data/` and `models/` paths, and references `file_path` without defining it. Before running its cells, set the kernel working directory to the repository root. For example, when the kernel starts inside `notebooks/`, run this setup cell:
-
-   ```python
-   from pathlib import Path
-   import os
-
-   os.chdir(Path.cwd().parent)  # Only if the current directory is notebooks/
-   file_path = Path("data/flight_data_2024.csv.zip")
+   ```bash
+   python scripts/train_model.py --input data/flight_data_cleaned_rebuilt.csv --output models/flight_delay_rf_model_rebuilt.pkl --report models/flight_delay_rf_model_rebuilt.metrics.json
    ```
 
-   If the kernel already starts at the repository root, omit `os.chdir(...)`. This is required manual setup, not an existing repository script.
+   This is an offline training command, not part of application startup. It reads the full cleaned CSV but fits only the final sampled training split. Existing cleaned data can instead be selected with `--input data/flight_data_cleaned.csv`. **Do not run this command merely to launch the app.**
+5. **Inspect the JSON report** and compare results with the notebook only after a complete run. Do not replace the deployed model automatically.
+6. **Prepare analytics separately**, if needed, using `scripts/prepare_analysis.py --source data/flight_data_cleaned_rebuilt.csv --output data/analysis_rebuild`. Analytics still uses all eligible flights, independently of training samples.
+7. **Run appropriate tests and launch Streamlit** using the committed deployed model as documented in section 10. Training outputs are not loaded by the application.
 
-5. **Clean the data** using the standalone command in section 5, which creates `data/flight_data_cleaned_rebuilt.csv`. Inspect its count report against metadata. Existing notebooks and analytics preparation still default to `data/flight_data_cleaned.csv`: to use the new file, explicitly set the notebook's `output_path` accordingly or pass `--source data/flight_data_cleaned_rebuilt.csv` to analytics preparation. Do not rerun notebook cell 4 on that output; it would rebuild it. Notebook cells 0–7 remain the original inspection/cleaning reference.
-6. **Preprocess and train through the notebook.** Earlier cells define preprocessing, experiment pipelines, and the ignored `models/flight_delay_rf_model.pkl`. The later final workflow samples temporal partitions (cell 27), resets the final split (cell 40), clones the earlier model settings and fits the final Random Forest (cell 41), evaluates it (cell 48), and saves `models/flight_delay_rf_model_updated.pkl` (cell 52). These are notebook operations, not executable training commands supplied by a script.
-7. **Prepare full-data analytics** with the `prepare_analysis.py` command in section 10. This uses the full cleaned CSV, independently of training samples.
-8. **Run tests**, then launch Streamlit as shown below and in section 10.
+### Standalone training behavior
 
-### Reproduction caveats
+- `--input` and `--output` are required; the input is a cleaned CSV, not the original ZIP or compact analytics data. Relative paths are resolved from the current working directory.
+- `--report` is optional; by default it uses the model output path with its suffix replaced by `.metrics.json`. Both output parent directories must already exist.
+- The script refuses existing model/report outputs, protects the deployed model path, and requires source/model/report paths to be distinct. It writes model/report files exclusively and cleans up its newly created files if saving fails.
+- Input must contain the eight features plus `fl_date`, `delayed`, `dep_delay`, and `cancelled`. Dates must be non-missing and in 2024; cancellation flags and departure delays must satisfy the existing cleaning rule; the target must match `int(dep_delay >= 15)`. Invalid input fails rather than being silently cleaned. Missing feature values remain handled by the original imputers.
+- Sampling preserves notebook cell 27: 100,000-row chunks, separate pre/post-October partitions, `sample(frac=0.06, random_state=42)` per nonempty partition per chunk, concatenation in source order. The 80/20 earlier-period split is stratified, with seed 42. Sampling/partition constants and classifier settings are fixed, rather than exposed as alternative experiments.
+- A fresh pipeline is fitted **only on the final training split**. Validation and October–December test data use its fitted transforms. There is no refit on validation/test, threshold tuning, feature scaling, or other-model training.
+- The report includes source SHA-256, source/split sizes, class counts, features, sampling settings, full classifier parameters, package versions, and validation/test accuracy, precision, recall, F1, and a `[0, 1]` confusion matrix. Metrics are fractions from 0 to 1; matrix rows are actual and columns predicted.
+- Evaluation uses `Pipeline.predict`, exactly as notebook cell 48. Scikit-learn resolves exact class-probability ties to class 0; the existing app uses class-1 probability **≥ 0.50**. The script does not alter either evaluation convention or the application's threshold/risk bands.
 
-The standalone script resolves the cleaning-stage path/setup gap. Training remains notebook-based; neither cleaning nor its tests retrain the model.
+### Differences from the original notebook
 
-Some earlier saved notebook outputs reflect smaller samples than the current 6% sampling code. The final split/evaluation cells report the consistent 250,288 / 62,573 / 106,105 counts documented here. The notebook is exploratory, relies on execution state, and shares a preprocessing object in a comparison experiment. It should not be represented as an unattended, guaranteed byte-identical retraining procedure. Keep the committed model when the goal is to reproduce the deployed application's behavior.
+The script constructs the verified preprocessing and Random Forest settings directly, replacing the notebook's clone of an ignored intermediate model. It excludes earlier 3% experiments, HGB comparisons, shared preprocessing objects, notebook state, and stale outputs. It adds validation, protected output paths, and a machine-readable report; none changes the final feature set, imputation/encoding strategies, temporal sampling, seeds, or classifier hyperparameters.
+
+Sampling depends on exact input row order, chunk boundaries, and pandas behavior. Reordering an equivalent CSV can change the sample. Matching source data and package versions are required; parallel floating-point accumulation can also introduce tiny probability differences. Byte-identical models or the notebook's original metrics are **not guaranteed**. No standalone full-data training/evaluation result has yet been established.
+
+### Optional notebook exploration
+
+The original notebooks remain unchanged and are not required by the standalone scripts. To explore them, install separate development tools:
+
+```bash
+python -m pip install jupyterlab matplotlib seaborn
+python -m jupyterlab
+```
+
+Notebook 01 requires its ignored sample CSV at `../data/flight_data_2024_sample.csv`; a sample-generation script is still missing. Notebook 02 requires a repository-root working directory and a manually defined `file_path = Path("data/flight_data_2024.csv.zip")` before its ZIP-reading cells. Its cleaning cell overwrites its output, its final training loads the older intermediate model, and some earlier saved outputs are inconsistent with current sampling code. Use the standalone scripts for the reproducible path, and keep the committed model when reproducing deployed behavior.
+
+### Lightweight training tests
+
+```bash
+python -B -m unittest discover -s tests -p test_train_model.py -v
+```
+
+These use small synthetic CSVs and temporary model outputs. They check notebook-equivalent chunk sampling/splits, verified pipeline settings, training-only imputation/encoding, metrics, serialization, reproducibility within floating-point tolerance, output protection, invalid inputs, and the CLI. They do not train on original flight records or confirm the recorded evaluation metrics.
 
 ### Automated checks
 
@@ -520,7 +544,7 @@ Future pushes to the connected `main` branch are picked up by Streamlit Cloud; a
 - Cancelled flights are excluded; neither the predictor nor these aggregates estimate cancellation risk.
 - Analytics describes associations, not causes. Airlines and airports have different traffic mixes, and sparse comparisons require caution.
 - The compact table cannot recover individual records, exact-date filters, medians, or full delay distributions. Local scheduled hours do not represent a shared timezone.
-- Upstream dataset provenance/licensing and fully automated notebook reproduction remain documentation gaps in the source material.
+- Upstream dataset provenance/licensing, sample generation for notebook 01, and a confirmed full-data standalone training run remain reproducibility gaps. The exploratory notebooks still require manual setup.
 
 ## 14. Troubleshooting
 
@@ -532,6 +556,7 @@ Future pushes to the connected `main` branch are picked up by Streamlit Cloud; a
 | `app/app.py`, requirements, or test paths not found | Change to the repository root before running the documented commands. Notebook working directories have separate requirements described in section 11. |
 | Preparation script reports invalid data | Check required columns, eligibility, target, date/weekday agreement, and HHMM values. Do not bypass validation or substitute a sample for the full cleaned source. |
 | Notebook raises `NameError: file_path` | Define the ZIP path and correct the kernel working directory before execution; see section 11. |
+| Standalone training fails or refuses output | Use the full cleaned CSV with required validation columns, both temporal periods, and sufficient samples of both training classes. Choose unused model/report filenames and existing parent directories. Never target the deployed model. |
 | Notebook cannot load the older model | The ignored `models/flight_delay_rf_model.pkl` is created by earlier experiment cells; a fresh clone does not contain it. Normal application startup uses the updated tracked model instead. |
 | No flights match filters | Select at least one value in every dimension, broaden the route/hour filters, or use Reset filters. A higher minimum-flight threshold can also hide rankings/heatmap cells. |
 | Prediction rejects the route | Origin and destination must differ. Enter distance in miles; the app does not determine route distance automatically. |
