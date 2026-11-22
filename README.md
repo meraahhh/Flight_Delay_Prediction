@@ -412,7 +412,7 @@ The last command creates a new output directory; it is an optional example, not 
 
 ## 11. Reproducing the Workflow
 
-Running the supplied application needs only a clone and the runtime dependencies. Rebuilding the model additionally requires the full cleaned 2024 CSV. No full-data training run has yet been performed with the standalone training script, so **the original evaluation metrics have not been confirmed by this script**.
+Running the supplied application needs only a clone and the runtime dependencies. Rebuilding the model additionally requires the full cleaned 2024 CSV. A complete standalone training run using the verified cleaned dataset reproduced the original test metrics and confusion matrix exactly; see Model Reproducibility Verification below.
 
 1. **Install the runtime** using section 9. Training uses pandas, NumPy, scikit-learn, and joblib from the existing pinned `requirements.txt`; no additional training dependency is needed:
 
@@ -448,7 +448,50 @@ Running the supplied application needs only a clone and the runtime dependencies
 
 The script constructs the verified preprocessing and Random Forest settings directly, replacing the notebook's clone of an ignored intermediate model. It excludes earlier 3% experiments, HGB comparisons, shared preprocessing objects, notebook state, and stale outputs. It adds validation, protected output paths, and a machine-readable report; none changes the final feature set, imputation/encoding strategies, temporal sampling, seeds, or classifier hyperparameters.
 
-Sampling depends on exact input row order, chunk boundaries, and pandas behavior. Reordering an equivalent CSV can change the sample. Matching source data and package versions are required; parallel floating-point accumulation can also introduce tiny probability differences. Byte-identical models or the notebook's original metrics are **not guaranteed**. No standalone full-data training/evaluation result has yet been established.
+Sampling depends on exact input row order, chunk boundaries, and pandas behavior. Reordering an equivalent CSV can change the sample. Matching source data and package versions are required; parallel floating-point accumulation can also introduce tiny probability differences. The verified run reproduced the original evaluation results. This does not guarantee the same results with different inputs or environments, or byte-identical model files.
+
+### Model Reproducibility Verification
+
+**PASS:** a complete run of the standalone training workflow reproduced the original evaluation metrics and confusion matrix exactly. It read all **6,982,766** cleaned records, applied the documented sampling and splits, and completed successfully in **12.26 seconds**, with no errors. This elapsed time is one local measurement, not a runtime guarantee on other machines.
+
+The verified command, executed from the repository root, was:
+
+```bash
+.venv/bin/python -B scripts/train_model.py \
+  --input data/flight_data_cleaned.csv \
+  --output models/flight_delay_rf_model_rebuilt.pkl \
+  --report models/flight_delay_rf_model_rebuilt.metrics.json
+```
+
+The command uses the existing verified Python 3.11.9 environment and pinned training packages. Both output files must be absent; use different unused output paths for another run.
+
+| Split | Records |
+|---|---:|
+| Training | 250,288 |
+| Validation | 62,573 |
+| Test | 106,105 |
+
+| Test metric | Rebuilt result | Difference from original exact result |
+|---|---:|---:|
+| Accuracy | 72.563027% | 0 percentage points |
+| Precision | 27.043468% | 0 percentage points |
+| Recall | 37.894440% | 0 percentage points |
+| F1-score | 31.562368% | 0 percentage points |
+
+The exact comparison used the unrounded metrics calculated from the original confusion matrix, rather than treating the previously displayed two-decimal percentages as exact values. The rebuilt results round to the original 72.56%, 27.04%, 37.89%, and 31.56%.
+
+The confusion matrix also matched exactly (rows actual, columns predicted; class order `[0, 1]`):
+
+```text
+[[70280, 18110],
+ [11002,  6713]]
+```
+
+The separate local outputs were `models/flight_delay_rf_model_rebuilt.pkl` (16,170,251 bytes) and `models/flight_delay_rf_model_rebuilt.metrics.json` (2,399 bytes). They are experiment artifacts, not required runtime files or committed deployment replacements. The report records raw fractional metrics; its generic `original_metrics_reproduced` field still says comparison is not established because the script does not perform that comparison automatically. The post-run comparison documented here establishes the match without altering that report.
+
+**Matching evaluation results does not prove byte-identical model files**, or identical predictions on every possible input. The deployed `models/flight_delay_rf_model_updated.pkl` was not replaced: its SHA-256 remained `1d1de9db718e117e42cd1f70759e6523f17438a2722d91e9d66d6c5664d562d0`. The cleaned dataset and application code also passed before/after hash checks; prediction thresholds were unchanged.
+
+Dataset provenance remains a separate limitation: the upstream provider, download URL, and flight-data license are still undocumented.
 
 ### Optional notebook exploration
 
@@ -544,7 +587,7 @@ Future pushes to the connected `main` branch are picked up by Streamlit Cloud; a
 - Cancelled flights are excluded; neither the predictor nor these aggregates estimate cancellation risk.
 - Analytics describes associations, not causes. Airlines and airports have different traffic mixes, and sparse comparisons require caution.
 - The compact table cannot recover individual records, exact-date filters, medians, or full delay distributions. Local scheduled hours do not represent a shared timezone.
-- Upstream dataset provenance/licensing, sample generation for notebook 01, and a confirmed full-data standalone training run remain reproducibility gaps. The exploratory notebooks still require manual setup.
+- Upstream dataset provenance/licensing and sample generation for notebook 01 remain reproducibility gaps. The exploratory notebooks still require manual setup; standalone full-data training has been verified as described in section 11.
 
 ## 14. Troubleshooting
 
