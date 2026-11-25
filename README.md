@@ -7,7 +7,7 @@ A Python and Streamlit application for estimating departure-delay risk and explo
 
 ## 1. Project Overview
 
-Flight delays make travel planning uncertain. This system uses a saved Random Forest model to estimate whether a departure will be **at least 15 minutes late**, given scheduled flight details. A separate analytics dashboard explores the full cleaned 2024 dataset.
+The system uses a saved Random Forest model to estimate whether a departure will be **at least 15 minutes late**, given scheduled flight details. A separate dashboard analyzes the full cleaned 2024 dataset.
 
 The binary target is `delayed = int(dep_delay >= 15)`, where `dep_delay` is departure delay in minutes. Class `1` means delayed; class `0` includes early departures and departures less than 15 minutes late. Consequently, the application's **On Time** label does not mean exactly on schedule.
 
@@ -17,7 +17,7 @@ Predictions are estimates based on historical data, **not live flight status**. 
 
 ```mermaid
 flowchart TD
-    RAW[Local 2024 flight CSV inside ZIP] --> CLEAN[Notebook 02: eligibility filtering and target creation]
+    RAW[Local 2024 flight CSV inside ZIP] --> CLEAN[scripts/clean_data.py: filtering and target creation]
     CLEAN --> CSV[Local full cleaned CSV]
     CSV --> SAMPLE[Training script: sampled temporal partitions]
     SAMPLE --> PREP[Imputation and one-hot encoding]
@@ -100,7 +100,7 @@ Flight_Delay_Prediction/
 | `tests/` | Python data/application checks and separate Playwright browser regressions |
 | `assets/` | Locally bundled interface resources; no remote image request is required |
 
-The photograph's source and license are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Airport labels have source and licensing metadata inside `airport_names.json`; they are display references, not model features. Neither asset license establishes a license for the flight dataset or project code.
+Photo attribution and licensing are recorded in [assets/ATTRIBUTION.md](assets/ATTRIBUTION.md). Airport display references record their provenance in `airport_names.json`. These asset licenses do not cover the flight dataset or project code.
 
 ## 4. Dataset
 
@@ -108,7 +108,7 @@ The photograph's source and license are recorded in [assets/ATTRIBUTION.md](asse
 
 The repository identifies the input as **US flight data for calendar year 2024**, covering January 1 through December 31. The local source ZIP is named `flight_data_2024.csv.zip` and contains `flight_data_2024.csv`.
 
-**The notebooks and dataset metadata do not record an upstream provider, download URL, or flight-data license.** Do not assume a particular provider. Obtaining the original input and confirming its usage rights are manual prerequisites for rebuilding the workflow. The packaged application can run without obtaining it.
+**The notebooks and dataset metadata do not record an upstream provider, download URL, or flight-data license.** Confirm the original source and usage rights before distributing the input data. Rebuilding requires obtaining that input manually; running the packaged application does not.
 
 ### Verified full-data totals
 
@@ -463,7 +463,7 @@ The verified command, executed from the repository root, was:
   --report models/flight_delay_rf_model_rebuilt.metrics.json
 ```
 
-The command uses the existing verified Python 3.11.9 environment and pinned training packages. Both output files must be absent; use different unused output paths for another run.
+The command uses Python 3.11.9 and the pinned training packages. Both output files must be absent.
 
 | Split | Records |
 |---|---:|
@@ -487,7 +487,7 @@ The confusion matrix also matched exactly (rows actual, columns predicted; class
  [11002,  6713]]
 ```
 
-The separate local outputs were `models/flight_delay_rf_model_rebuilt.pkl` (16,170,251 bytes) and `models/flight_delay_rf_model_rebuilt.metrics.json` (2,399 bytes). They are experiment artifacts, not required runtime files or committed deployment replacements. The report records raw fractional metrics; its generic `original_metrics_reproduced` field still says comparison is not established because the script does not perform that comparison automatically. The post-run comparison documented here establishes the match without altering that report.
+The experiment produced `models/flight_delay_rf_model_rebuilt.pkl` (16,170,251 bytes) and `models/flight_delay_rf_model_rebuilt.metrics.json` (2,399 bytes). These generated outputs are excluded from Git and are not runtime dependencies. The report records fractional metrics; its generic comparison field is not updated automatically. The comparison above was verified after the run.
 
 **Matching evaluation results does not prove byte-identical model files**, or identical predictions on every possible input. The deployed `models/flight_delay_rf_model_updated.pkl` was not replaced: its SHA-256 remained `1d1de9db718e117e42cd1f70759e6523f17438a2722d91e9d66d6c5664d562d0`. The cleaned dataset and application code also passed before/after hash checks; prediction thresholds were unchanged.
 
@@ -544,8 +544,10 @@ $env:PLAYWRIGHT_BROWSERS_PATH = Join-Path $browserTools "browsers"
 Start a test server in another terminal with the same Python environment:
 
 ```bash
-python -m streamlit run app/app.py --server.port 8765 --server.headless true
+python -m streamlit run app/app.py --server.port 8765 --server.headless true --browser.gatherUsageStats false
 ```
+
+Telemetry is disabled for this test server because the offline browser check deliberately blocks external requests. This does not change deployment settings.
 
 Then run the browser scripts **sequentially**:
 

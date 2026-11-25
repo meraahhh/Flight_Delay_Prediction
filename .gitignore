@@ -21,3 +21,7 @@ data/*.zip
 
 # Previous model version
 models/flight_delay_rf_model.pkl
+
+# Generated reproducibility outputs
+models/flight_delay_rf_model_rebuilt.*
+data/analysis_rebuild/
